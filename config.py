@@ -1,0 +1,32 @@
+"""Configuration file for the project."""
+
+# Data paths
+RAW_DATA_PATH = "data/raw/"
+PROCESSED_DATA_PATH = "data/processed/"
+
+# Model hyperparameters
+SEQUENCE_LENGTH = 10
+BATCH_SIZE = 32
+EPOCHS = 50
+LEARNING_RATE = 0.001
+VALIDATION_SPLIT = 0.2
+TEST_SPLIT = 0.1
+
+# Feature engineering
+FEATURE_COLUMNS = ['x_start', 'y_start', 'x_end', 'y_end',
+                   'action_type', 'pass_length', 'pass_angle',
+                   'time_delta', 'under_pressure']
+
+# Model type: 'lstm' or 'transformer'
+MODEL_TYPE = 'lstm'
+
+# LSTM parameters
+LSTM_UNITS = 128
+LSTM_DROPOUT = 0.2
+
+# Transformer parameters
+TRANSFORMER_HEADS = 4
+TRANSFORMER_DIM = 128
+TRANSFORMER_FF_DIM = 512
+TRANSFORMER_BLOCKS = 2
+
