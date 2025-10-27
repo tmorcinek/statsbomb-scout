@@ -1,8 +1,8 @@
 """Main script to run the full pipeline."""
 
 import config
-from src.data_loader import StatsBombDataLoader
 from src.preprocessing import SequencePreprocessor
+from socceraction.data.statsbomb import StatsBombLoader
 from src.model import create_model
 from src.train import ModelTrainer
 
@@ -15,7 +15,10 @@ def main():
 
     # 1. Load data
     print("\n1. Loading data...")
-    data_loader = StatsBombDataLoader(config.RAW_DATA_PATH)
+    SBL = StatsBombLoader(root="data/statsbomb/data", getter="local")
+    df_competitions = SBL.competitions()
+    print(df_competitions)
+
     # TODO: Specify your data file
     # events_df = data_loader.load_from_json("path/to/events.json")
     # events_df = data_loader.filter_relevant_events()
