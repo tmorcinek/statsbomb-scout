@@ -1,6 +1,9 @@
 """Main script to run the full pipeline."""
 
 import config
+import pandas as pd
+
+from src.data_loader import load_statsbomb_data
 from src.preprocessing import SequencePreprocessor
 from socceraction.data.statsbomb import StatsBombLoader
 from src.model import create_model
@@ -16,8 +19,11 @@ def main():
     # 1. Load data
     print("\n1. Loading data...")
     SBL = StatsBombLoader(root="data/statsbomb/data", getter="local")
-    df_competitions = SBL.competitions()
-    print(df_competitions)
+    # games = SBL.games(55, 282)
+    data = load_statsbomb_data(SBL, 55, 282)
+
+    for games in data:
+        print(games.shape)
 
     # TODO: Specify your data file
     # events_df = data_loader.load_from_json("path/to/events.json")
@@ -70,5 +76,9 @@ def main():
 
 
 if __name__ == "__main__":
+    pd.set_option('display.width', 1000)
+    pd.set_option('display.max_rows', None)
+    pd.set_option('display.max_columns', None)
+
     main()
 
