@@ -4,10 +4,10 @@ import config
 import pandas as pd
 
 from src.data_loader import load_statsbomb_data
+from src.data_splitter import split_matches
 from src.preprocessing import SequencePreprocessor
 from src.model import create_model
 from src.train import ModelTrainer
-
 
 def main():
     """Run the full training pipeline."""
@@ -15,25 +15,19 @@ def main():
     print("Football Player Evaluation Model")
     print("=" * 50)
 
-    # 1. Load data
-    print("\n1. Loading data...")
+    # 1a. Load data
+    print("\n1a. Loading data...")
     data = load_statsbomb_data( 55, 282)
 
-    game = next(data)
-    print(game)
-
-    # TODO: Specify your data file
-    # events_df = data_loader.load_from_json("path/to/events.json")
-    # events_df = data_loader.filter_relevant_events()
+    # 1b. Splitting data
+    print("\n1b. Splitting data...")
+    train_matches, val_matches, test_matches = split_matches(data)
 
     # 2. Preprocess data
-    print("\n2. Preprocessing data...")
     preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH)
-    # TODO: Uncomment when data is loaded
-    # X, y = preprocessor.prepare_dataset(events_df)
-    # X_train, X_val, X_test, y_train, y_val, y_test = preprocessor.split_data(
-    #     X, y, test_size=config.TEST_SPLIT, val_size=config.VALIDATION_SPLIT
-    # )
+    X_train, y_train = preprocessor.process_matches(train_matches)
+    X_val, y_val = preprocessor.process_matches(val_matches)
+    X_test, y_test = preprocessor.process_matches(test_matches)
 
     # 3. Build model
     print(f"\n3. Building {config.MODEL_TYPE.upper()} model...")

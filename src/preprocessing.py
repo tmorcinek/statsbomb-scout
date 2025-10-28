@@ -1,9 +1,9 @@
 """Module for preprocessing event data into sequences."""
 
+from typing import List, Tuple, Generator, Union
+
 import numpy as np
 import pandas as pd
-from typing import List, Tuple
-from sklearn.model_selection import train_test_split
 
 
 class SequencePreprocessor:
@@ -19,7 +19,7 @@ class SequencePreprocessor:
         self.sequence_length = sequence_length
         self.action_type_mapping = {}
 
-    def extract_possessions(self, events_df: pd.DataFrame) -> List[pd.DataFrame]:
+    def _extract_possessions(self, events_df: pd.DataFrame) -> List[pd.DataFrame]:
         """
         Extract possession phases from event data.
 
@@ -37,7 +37,7 @@ class SequencePreprocessor:
 
         return possessions
 
-    def create_features(self, possession_df: pd.DataFrame) -> np.ndarray:
+    def _create_features(self, possession_df: pd.DataFrame) -> np.ndarray:
         """
         Create feature vectors for each action in possession.
 
@@ -76,7 +76,7 @@ class SequencePreprocessor:
 
         return np.array(features)
 
-    def create_sequences(self, features: np.ndarray) -> List[np.ndarray]:
+    def _create_sequences(self, features: np.ndarray) -> List[np.ndarray]:
         """
         Create fixed-length sequences from features.
 
@@ -95,8 +95,8 @@ class SequencePreprocessor:
 
         return sequences
 
-    def create_labels(self, possession_df: pd.DataFrame,
-                     sequence_indices: List[int]) -> np.ndarray:
+    def _create_labels(self, possession_df: pd.DataFrame,
+                       sequence_indices: List[int]) -> np.ndarray:
         """
         Create labels for sequences (xG of shot or 0).
 
@@ -121,61 +121,73 @@ class SequencePreprocessor:
 
         return np.array(labels)
 
-    def prepare_dataset(self, events_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
+    def process_match(self, match_id: int, events_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Full preprocessing pipeline: possessions → sequences → features & labels.
+        Process a single match into sequences.
 
         Args:
-            events_df: Raw events DataFrame
+            match_id: ID of the match
+            events_df: DataFrame with events from one match
 
         Returns:
-            Tuple of (X, y) where X is features and y is labels
+            Tuple of (X, y) where:
+                - X is array of sequences with shape (n_sequences, sequence_length, n_features)
+                - y is array of labels with shape (n_sequences,)
         """
-        possessions = self.extract_possessions(events_df)
+        print(f"Processing match {match_id}: {len(events_df)} events")
+
+        # Extract possessions from match
+        possessions = self._extract_possessions(events_df)
 
         all_sequences = []
         all_labels = []
 
         for possession in possessions:
-            features = self.create_features(possession)
-            sequences = self.create_sequences(features)
+            # Create features for each action in possession
+            features = self._create_features(possession)
 
-            # TODO: Generate labels for each sequence
-            labels = self.create_labels(possession,
-                                       list(range(len(sequences))))
+            # Create sequences from features
+            sequences = self._create_sequences(features)
+
+            # Generate labels for each sequence
+            labels = self._create_labels(possession, list(range(len(sequences))))
 
             all_sequences.extend(sequences)
             all_labels.extend(labels)
 
-        X = np.array(all_sequences)
-        y = np.array(all_labels)
+        X = np.array(all_sequences) if all_sequences else np.array([]).reshape(0, self.sequence_length, 0)
+        y = np.array(all_labels) if all_labels else np.array([])
+
+        print(f"  → Generated {len(X)} sequences")
 
         return X, y
 
-    def split_data(self, X: np.ndarray, y: np.ndarray,
-                   test_size: float = 0.1, val_size: float = 0.2
-                   ) -> Tuple[np.ndarray, ...]:
+    def process_matches(self, matches: Union[Generator[Tuple[int, pd.DataFrame], None, None], List[Tuple[int, pd.DataFrame]]]) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Split data into train, validation, and test sets.
+        Process multiple matches from generator or list into sequences.
 
         Args:
-            X: Feature array
-            y: Label array
-            test_size: Proportion for test set
-            val_size: Proportion of remaining data for validation
+            matches: Generator or list yielding/containing (match_id, events_df) tuples
 
         Returns:
-            Tuple of (X_train, X_val, X_test, y_train, y_val, y_test)
+            Tuple of (X, y) where:
+                - X is array of all sequences with shape (n_sequences, sequence_length, n_features)
+                - y is array of all labels with shape (n_sequences,)
         """
-        # First split: separate test set
-        X_temp, X_test, y_temp, y_test = train_test_split(
-            X, y, test_size=test_size, random_state=42
-        )
+        all_X = []
+        all_y = []
 
-        # Second split: separate validation from training
-        X_train, X_val, y_train, y_val = train_test_split(
-            X_temp, y_temp, test_size=val_size, random_state=42
-        )
+        for match_id, events_df in matches:
+            X_match, y_match = self.process_match(match_id, events_df)
 
-        return X_train, X_val, X_test, y_train, y_val, y_test
+            if len(X_match) > 0:
+                all_X.append(X_match)
+                all_y.append(y_match)
 
+        # Concatenate all sequences
+        X = np.concatenate(all_X) if all_X else np.array([])
+        y = np.concatenate(all_y) if all_y else np.array([])
+
+        print(f"\nTotal sequences from all matches: {len(X)}")
+
+        return X, y
