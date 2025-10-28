@@ -5,7 +5,6 @@ import pandas as pd
 
 from src.data_loader import load_statsbomb_data
 from src.preprocessing import SequencePreprocessor
-from socceraction.data.statsbomb import StatsBombLoader
 from src.model import create_model
 from src.train import ModelTrainer
 
@@ -18,12 +17,10 @@ def main():
 
     # 1. Load data
     print("\n1. Loading data...")
-    SBL = StatsBombLoader(root="data/statsbomb/data", getter="local")
-    # games = SBL.games(55, 282)
-    data = load_statsbomb_data(SBL, 55, 282)
+    data = load_statsbomb_data( 55, 282)
 
-    for games in data:
-        print(games.shape)
+    game = next(data)
+    print(game)
 
     # TODO: Specify your data file
     # events_df = data_loader.load_from_json("path/to/events.json")

@@ -1,23 +1,28 @@
 """Module for loading StatsBomb event data."""
 
-from typing import Generator
+import os
+from typing import Generator, Tuple
 
 import pandas as pd
-from socceraction.data.statsbomb import StatsBombLoader
+from statsbombpy import sb
+
+os.environ['STATSBOMB_LOCAL_DATA'] = 'data/statsbomb/data'
 
 
-def load_statsbomb_data(loader: StatsBombLoader, competition_id: int, season_id: int) -> Generator[pd.DataFrame, None, None]:
-    games = loader.games(competition_id, season_id)
-    print(f"Found {len(games)} matches in competition {competition_id}, season {season_id}")
+def load_statsbomb_data(competition_id: int, season_id: int) -> Generator[Tuple[int, pd.DataFrame], None, None]:
+    matches = sb.matches(competition_id, season_id)
+    print(f"Found {len(matches)} matches in competition {competition_id}, season {season_id}")
 
-    for index, game in games.iterrows():
-        game_id = game['game_id']
-        print(f"Loading events for match {game_id} ({index + 1}/{len(games)})...")
+    for index, game in matches.iterrows():
+        match_id = game['match_id']
+        print(f"Loading events for match {match_id} ({index + 1}/{len(matches)})...")
 
         try:
-            yield loader.events(game_id)
+            events = sb.events(match_id)
+            events = filter_relevant_events(events)
+            yield match_id, events
         except Exception as e:
-            print(f"Warning: Failed to load events for match {game_id}: {e}")
+            print(f"Warning: Failed to load events for match {match_id}: {e}")
             continue
 
 
