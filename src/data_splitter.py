@@ -7,11 +7,11 @@ import pandas as pd
 
 
 def split_matches(
-        matches_generator: Generator[Tuple[int, pd.DataFrame], None, None],
+        matches_generator: Generator[Tuple[pd.Series, pd.DataFrame], None, None],
         test_size: float = 0.1,
         val_size: float = 0.2,
         random_seed: int = 42
-) -> Tuple[List[Tuple[int, pd.DataFrame]], ...]:
+) -> Tuple[List[Tuple[pd.Series, pd.DataFrame]], ...]:
     """
     Split matches into train, validation, and test sets.
 

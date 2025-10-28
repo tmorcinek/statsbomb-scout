@@ -10,12 +10,6 @@ class SequencePreprocessor:
     """Preprocesses event data into fixed-length sequences with features."""
 
     def __init__(self, sequence_length: int = 10, minimum_possession_length: int = 2):
-        """
-        Initialize preprocessor.
-
-        Args:
-            sequence_length: Number of actions in each sequence
-        """
         self.sequence_length = sequence_length
         self.minimum_possession_length = minimum_possession_length
         self.action_type_mapping = {}
@@ -24,13 +18,29 @@ class SequencePreprocessor:
         """
         Extract possession phases from single match data.
 
+        Filters out opponent events (like Pressure, Foul Committed) that are recorded
+        within possession but don't belong to the possessing team.
+
         Args:
             events_df: DataFrame with events
 
         Returns:
             List of DataFrames, each representing one possession
         """
-        return [possession_group.copy() for _, possession_group in events_df.groupby("possession") if len(possession_group) >= self.minimum_possession_length]
+        possessions = []
+
+        for possession_id, possession_group in events_df.groupby("possession"):
+            # Get the team that has possession
+            possession_team = possession_group['possession_team_name'].iloc[0]
+
+            # Filter events to only include actions by the possessing team
+            team_events = possession_group[possession_group['team_name'] == possession_team].copy()
+
+            # Only include possessions with minimum number of events
+            if len(team_events) >= self.minimum_possession_length:
+                possessions.append(team_events.copy())
+
+        return possessions
 
     def _create_features(self, possession_df: pd.DataFrame) -> np.ndarray:
         """
@@ -43,33 +53,49 @@ class SequencePreprocessor:
             Feature array of shape (n_actions, n_features)
         """
         features = []
+        previous_timestamp = None
 
         for idx, row in possession_df.iterrows():
             action_features = []
 
-            # TODO: Extract features for each action
-            # 1. Coordinates (x_start, y_start, x_end, y_end)
-            # action_features.extend([row['location'][0], row['location'][1], ...])
+            # 1. Location coordinates (x, y)
+            location = row.get('location', [0, 0])
+            x, y = location[0] if len(location) > 0 else 0, location[1] if len(location) > 1 else 0
+            action_features.extend([x, y])
 
-            # 2. Action type (encoded as integer)
-            # action_type = self._encode_action_type(row['type'])
-            # action_features.append(action_type)
+            # 2. End location (for passes/carries)
+            end_location = row.get('pass_end_location') or row.get('carry_end_location', [x, y])
+            x_end = end_location[0] if len(end_location) > 0 else x
+            y_end = end_location[1] if len(end_location) > 1 else y
+            action_features.extend([x_end, y_end])
 
-            # 3. Pass length and angle (if applicable)
-            # pass_length, pass_angle = self._calculate_pass_metrics(row)
-            # action_features.extend([pass_length, pass_angle])
+            # 3. Action type (one-hot or integer encoding)
+            action_type = row['type']
+            if action_type not in self.action_type_mapping:
+                self.action_type_mapping[action_type] = len(self.action_type_mapping)
+            action_features.append(self.action_type_mapping[action_type])
 
-            # 4. Time delta from previous action
-            # time_delta = self._calculate_time_delta(idx, possession_df)
-            # action_features.append(time_delta)
+            # 4. Pass/movement metrics
+            distance = np.sqrt((x_end - x) ** 2 + (y_end - y) ** 2)
+            angle = np.arctan2(y_end - y, x_end - x)
+            action_features.extend([distance, angle])
 
-            # 5. Under pressure flag
-            # under_pressure = 1 if row.get('under_pressure', False) else 0
-            # action_features.append(under_pressure)
+            # 5. Time delta from previous action
+            current_timestamp = pd.to_datetime(row['timestamp'])
+            if previous_timestamp is not None:
+                time_delta = (current_timestamp - previous_timestamp).total_seconds()
+            else:
+                time_delta = 0.0
+            action_features.append(time_delta)
+            previous_timestamp = current_timestamp
+
+            # 6. Contextual flags
+            under_pressure = 1.0 if row.get('under_pressure', False) else 0.0
+            action_features.append(under_pressure)
 
             features.append(action_features)
 
-        return np.array(features)
+        return np.array(features, dtype=np.float32)
 
     def _create_sequences(self, features: np.ndarray) -> List[np.ndarray]:
         """
@@ -157,7 +183,7 @@ class SequencePreprocessor:
 
         return X, y
 
-    def process_matches(self, matches: Union[Generator[Tuple[int, pd.DataFrame], None, None], List[Tuple[int, pd.DataFrame]]]) -> Tuple[np.ndarray, np.ndarray]:
+    def process_matches(self, matches: Union[Generator[Tuple[pd.Series, pd.DataFrame], None, None], List[Tuple[pd.Series, pd.DataFrame]]]) -> Tuple[np.ndarray, np.ndarray]:
         """
         Process multiple matches from generator or list into sequences.
 
@@ -172,8 +198,8 @@ class SequencePreprocessor:
         all_X = []
         all_y = []
 
-        for match_id, events_df in matches:
-            X_match, y_match = self.process_match(match_id, events_df)
+        for match, events_df in matches:
+            X_match, y_match = self.process_match(match['match_id'], events_df)
 
             if len(X_match) > 0:
                 all_X.append(X_match)
