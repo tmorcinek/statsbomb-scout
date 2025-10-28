@@ -27,13 +27,6 @@ def split_matches(
     Returns:
         Tuple of (train_matches, val_matches, test_matches)
         Each is a list of (match_id, events_df) tuples
-
-    Example:
-        >>> from src.data_loader import load_statsbomb_data
-        >>> from src.data_splitter import split_matches
-        >>> matches_gen = load_statsbomb_data(55, 282)
-        >>> train, val, test = split_matches(matches_gen)
-        >>> print(f"Train: {len(train)}, Val: {len(val)}, Test: {len(test)}")
     """
     # Convert generator to list
     all_matches = list(matches_generator)

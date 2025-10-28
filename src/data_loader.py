@@ -1,12 +1,10 @@
 """Module for loading StatsBomb event data."""
 
-import os
 from typing import Generator, Tuple
 
 import pandas as pd
-from statsbombpy import sb
 
-os.environ['STATSBOMB_LOCAL_DATA'] = 'data/statsbomb/data'
+from statsbombpy import sb
 
 
 def load_statsbomb_data(competition_id: int, season_id: int) -> Generator[Tuple[int, pd.DataFrame], None, None]:
