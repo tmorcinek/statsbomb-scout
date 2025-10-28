@@ -19,3 +19,10 @@ def load_statsbomb_data(loader: StatsBombLoader, competition_id: int, season_id:
         except Exception as e:
             print(f"Warning: Failed to load events for match {game_id}: {e}")
             continue
+
+
+def filter_relevant_events(events) -> pd.DataFrame:
+    return events[~events['type'].isin([
+        'Substitution', 'Injury Stoppage', 'Half Start', 'Half End',
+        'Tactical Shift', 'Referee Ball-Drop', 'Starting XI'
+    ])].sort_values(by=['index'])
