@@ -65,11 +65,24 @@ def main():
     print("Pipeline completed successfully!")
     print("=" * 50)
 
+def single_match_pipeline():
+    """Run the pipeline for a single match (for debugging)."""
+
+    # Load events for the match
+    match_id, events = next(load_statsbomb_data(55, 282))
+    print(f"Loaded {len(events)} events for match {match_id}")
+
+    # Preprocess data
+    preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH)
+    possessions = preprocessor._extract_possessions(events)
+
+    print(f"Generated {len(possessions)} sequences for match {match_id}")
 
 if __name__ == "__main__":
     pd.set_option('display.width', 1000)
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
 
-    main()
+    # main()
+    single_match_pipeline()
 

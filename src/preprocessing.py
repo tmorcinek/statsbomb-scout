@@ -9,7 +9,7 @@ import pandas as pd
 class SequencePreprocessor:
     """Preprocesses event data into fixed-length sequences with features."""
 
-    def __init__(self, sequence_length: int = 10):
+    def __init__(self, sequence_length: int = 10, minimum_possession_length: int = 2):
         """
         Initialize preprocessor.
 
@@ -17,11 +17,12 @@ class SequencePreprocessor:
             sequence_length: Number of actions in each sequence
         """
         self.sequence_length = sequence_length
+        self.minimum_possession_length = minimum_possession_length
         self.action_type_mapping = {}
 
     def _extract_possessions(self, events_df: pd.DataFrame) -> List[pd.DataFrame]:
         """
-        Extract possession phases from event data.
+        Extract possession phases from single match data.
 
         Args:
             events_df: DataFrame with events
@@ -29,13 +30,7 @@ class SequencePreprocessor:
         Returns:
             List of DataFrames, each representing one possession
         """
-        possessions = []
-
-        # TODO: Implement possession extraction logic
-        # Group events by possession_team and identify phase changes
-        # Example: events_df.groupby(['match_id', 'possession'])
-
-        return possessions
+        return [possession_group.copy() for _, possession_group in events_df.groupby("possession") if len(possession_group) >= self.minimum_possession_length]
 
     def _create_features(self, possession_df: pd.DataFrame) -> np.ndarray:
         """
