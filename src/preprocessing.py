@@ -11,7 +11,7 @@ import socceraction.spadl.config as spadl_config
 class SequencePreprocessor:
     """Preprocesses event data into fixed-length sequences with features."""
 
-    def __init__(self, sequence_length: int = 10, minimum_possession_length: int = 2):
+    def __init__(self, sequence_length: int = 10, minimum_possession_length: int = 10):
         self.sequence_length = sequence_length
         self.minimum_possession_length = minimum_possession_length
         self.action_type_mapping = {}
@@ -154,32 +154,41 @@ class SequencePreprocessor:
             bodypart_onehot
         ], axis=1).astype(np.float32)
 
-    def _create_sequences(self, features: np.ndarray) -> List[np.ndarray]:
+    def _create_sequences(self, features: np.ndarray) -> np.ndarray:
         """
-        Create fixed-length sequences from features using sliding window.
+        Create fixed-length sequences using efficient sliding window with NumPy strides.
 
-        Generates overlapping sequences of actions from a possession.
-        Example: if features has 7 actions and sequence_length=3:
-        - Sequence 1: actions[0:3]
-        - Sequence 2: actions[1:4] (shifted by 1)
-        - Sequence 3: actions[2:5]
-        - etc.
+        Uses zero-copy view (np.lib.stride_tricks.sliding_window_view) for memory efficiency.
+        This creates overlapping sequences without duplicating data in memory.
+
+        Example with 7 actions and sequence_length=3:
+            Input:  [A1, A2, A3, A4, A5, A6, A7]
+            Output: [[A1, A2, A3],
+                     [A2, A3, A4],
+                     [A3, A4, A5],
+                     [A4, A5, A6],
+                     [A5, A6, A7]]
+            → 5 sequences (7 - 3 + 1)
 
         Args:
             features: Feature array of shape (n_actions, n_features)
+                     Must have at least sequence_length rows
 
         Returns:
-            List of sequences, each with shape (sequence_length, n_features)
+            Array of shape (n_sequences, sequence_length, n_features) where:
+                n_sequences = n_actions - sequence_length + 1
+
+        Raises:
+            ValueError: If features has fewer rows than sequence_length
+
+        Performance:
+            - O(1) time complexity (view creation, no copying)
+            - O(1) space complexity (shares memory with input array)
         """
         if len(features) < self.sequence_length:
-            return []
+            raise ValueError(f"Insufficient number of actions ({len(features)}) for sequence length {self.sequence_length}.")
 
-        sequences = []
-        for i in range(len(features) - self.sequence_length + 1):
-            sequence = features[i:i + self.sequence_length]
-            sequences.append(sequence)
-
-        return sequences
+        return np.lib.stride_tricks.sliding_window_view(features, (self.sequence_length, features.shape[1])).squeeze(1)
 
     def _create_labels(self, actions_df: pd.DataFrame, sequence_indices: List[int]) -> np.ndarray:
         """
@@ -247,8 +256,12 @@ class SequencePreprocessor:
         all_labels = []
 
         for possession in possessions:
-            # Extract and normalize features
+            # Extract features
             features_df = self._extract_features(possession, home_team_id)
+            if len(features_df) < self.sequence_length:
+                continue
+
+            # Normalize features
             features = self._normalize_features(features_df)
 
             # Create sequences from features (sliding window)
@@ -257,11 +270,11 @@ class SequencePreprocessor:
             # Generate labels for each sequence
             labels = self._create_labels(features_df, list(range(len(sequences))))
 
-            all_sequences.extend(sequences)
-            all_labels.extend(labels)
+            all_sequences.append(sequences)
+            all_labels.append(labels)
 
-        X = np.array(all_sequences) if all_sequences else np.array([]).reshape(0, self.sequence_length, 0)
-        y = np.array(all_labels) if all_labels else np.array([])
+        X = np.concatenate(all_sequences) if all_sequences else np.array([]).reshape(0, self.sequence_length, 0)
+        y = np.concatenate(all_labels) if all_labels else np.array([])
 
         print(f"  → Generated {len(X)} sequences")
 
