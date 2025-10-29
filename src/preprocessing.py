@@ -7,6 +7,10 @@ import pandas as pd
 import socceraction.spadl as spadl
 import socceraction.spadl.config as spadl_config
 
+import warnings
+
+warnings.filterwarnings('ignore', category=FutureWarning, module='socceraction')
+pd.set_option('future.no_silent_downcasting', True)
 
 class SequencePreprocessor:
     """Preprocesses event data into fixed-length sequences with features."""
@@ -61,7 +65,7 @@ class SequencePreprocessor:
             DataFrame with SPADL actions and additional computed features (not normalized)
         """
         # Convert possession to SPADL actions
-        actions = spadl.statsbomb.convert_to_actions(possession, home_team_id)
+        actions = spadl.statsbomb.convert_to_actions(possession, home_team_id, xy_fidelity_version=2)
 
         # 1) Geometry: dx, dy, distance, angle
         actions["dx"] = actions["end_x"] - actions["start_x"]
@@ -72,17 +76,10 @@ class SequencePreprocessor:
         # 2) Time difference between actions
         actions["time_diff"] = actions["time_seconds"].diff().fillna(0.0)
 
-        subset = possession.filter(['event_id', 'duration', 'under_pressure', 'counterpress'])
-        actions = (
-            actions
-            .merge(subset, left_on='original_event_id', right_on='event_id', how='left')
-            .drop(columns='event_id')
-            .assign(
-                duration=lambda df: df['duration'].fillna(0.0),
-                under_pressure=lambda df: df['under_pressure'].fillna(False),
-                counterpress=lambda df: df['counterpress'].fillna(False)
-            )
-        )
+        # 3) Merge contextual features
+        subset = possession[['event_id', 'duration', 'under_pressure', 'counterpress']]
+        actions = actions.merge(subset, left_on='original_event_id', right_on='event_id', how='left').drop(columns='event_id')
+        actions = actions.fillna({'duration': 0.0, 'under_pressure': False, 'counterpress': False})
 
         return actions
 
