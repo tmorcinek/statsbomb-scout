@@ -1,6 +1,6 @@
 """Module for preprocessing event data into sequences."""
 
-from typing import List, Tuple, Generator, Union
+from typing import List, Tuple, Generator, Union, Optional
 
 import numpy as np
 import pandas as pd
@@ -9,13 +9,28 @@ import socceraction.spadl.config as spadl_config
 
 import warnings
 
+from socceraction.xthreat import ExpectedThreat
+
 warnings.filterwarnings('ignore', category=FutureWarning, module='socceraction')
 pd.set_option('future.no_silent_downcasting', True)
 
 class SequencePreprocessor:
     """Preprocesses event data into fixed-length sequences with features."""
 
-    def __init__(self, sequence_length: int = 10, minimum_possession_length: int = 10):
+    def __init__(
+        self,
+        sequence_length: int = 10,
+        minimum_possession_length: int = 10,
+        xt_model: ExpectedThreat = None
+    ):
+        """
+        Initialize preprocessor.
+
+        Args:
+            sequence_length: Number of actions in each sequence
+            minimum_possession_length: Minimum number of actions in a possession to process
+            xt_model: Optional pre-trained xT model. If None, uses default model.
+        """
         self.sequence_length = sequence_length
         self.minimum_possession_length = minimum_possession_length
         self.action_type_mapping = {}
@@ -187,39 +202,77 @@ class SequencePreprocessor:
 
         return np.lib.stride_tricks.sliding_window_view(features, (self.sequence_length, features.shape[1])).squeeze(1)
 
-    def _create_labels(self, actions_df: pd.DataFrame, sequence_indices: List[int]) -> np.ndarray:
+    def _create_labels(self, actions_df: pd.DataFrame, original_events: pd.DataFrame) -> np.ndarray:
         """
         Create labels for sequences based on possession outcome.
 
         For each sequence, the label represents the expected value:
-        - If sequence ends with a shot: use shot_statsbomb_xg value
-        - Otherwise: 0.0
+        - If sequence ends with a GOAL: 1.0
+        - If sequence ends with a SHOT: shot_statsbomb_xg value (0.0-1.0)
+        - Otherwise: delta_xT (change in Expected Threat)
 
-        TODO: Currently returns placeholder 0.0 values. Needs implementation to:
-        1. Check if action at sequence_end is a shot (type_id == shot)
-        2. Extract xG value from original StatsBomb event
-        3. Return xG or 0.0
+        Expected Threat (xT) measures how much an action increases goal probability.
+        Δ_xT = xT_end - xT_start (can be negative if action moves away from goal).
 
         Args:
             actions_df: DataFrame with SPADL actions from _extract_features()
-            sequence_indices: List of starting indices for each sequence
+                       Must contain 'type_name', 'original_event_id' columns
+            original_events: DataFrame with original StatsBomb events
+                            Must contain 'event_id', 'shot_statsbomb_xg', 'shot_outcome_name'
 
         Returns:
-            Array of labels with shape (n_sequences,)
+            Array of labels with shape (n_sequences,) where each value is:
+                - 1.0 if sequence ends with a goal
+                - xG (0.0-1.0) if sequence ends with a shot (non-goal)
+                - Δ_xT if sequence ends with another action
+
+        Example:
+            For 5 actions with sequence_length=3:
+                Actions: [pass, pass, dribble, shot(xG=0.3), goal]
+                Sequences: [[pass, pass, dribble],  [pass, dribble, shot],  [dribble, shot, goal]]
+                Labels:    [0.05 (Δ_xT),            0.3 (xG),                1.0 (goal)]
         """
-        labels = []
+        n_sequences = len(actions_df) - self.sequence_length + 1
+        labels = np.zeros(n_sequences, dtype=np.float32)
 
-        for idx in sequence_indices:
-            end_idx = idx + self.sequence_length
+        # 1) Create mappings for shots and goals
+        xg_map = {}
+        goal_events = set()
 
-            # TODO: Check if sequence ends with a shot
-            # If yes, use xG value; if no, use 0
-            # Example: check if actions_df.iloc[end_idx-1]['type_name'] == 'shot'
-            # Then map back to original event to get shot_statsbomb_xg
+        if 'shot_statsbomb_xg' in original_events.columns:
+            shot_events = original_events[original_events['shot_statsbomb_xg'].notna()].copy()
+            xg_map = dict(zip(shot_events['id'], shot_events['shot_statsbomb_xg']))
 
-            labels.append(0)  # Placeholder
+            # Identify goals
+            if 'shot_outcome' in original_events.columns:
+                # shot_outcome is a dict with 'name' key
+                goals = shot_events[shot_events['shot_outcome'].apply(
+                    lambda x: isinstance(x, dict) and x.get('name') == 'Goal'
+                )]
+                goal_events = set(goals['id'])
 
-        return np.array(labels)
+        # 2) Calculate xT for all actions using the model
+        delta_xt = calculate_delta_xt(actions_df, self.xt_model)
+
+        # 3) For each sequence, assign label based on last action
+        for i in range(n_sequences):
+            end_idx = i + self.sequence_length - 1  # Last action in sequence
+            action = actions_df.iloc[end_idx]
+            original_event_id = action['original_event_id']
+
+            # Priority 1: Check if it's a goal
+            if original_event_id in goal_events:
+                labels[i] = 1.0
+
+            # Priority 2: Check if it's a shot (non-goal)
+            elif action['type_name'] == 'shot':
+                labels[i] = xg_map.get(original_event_id, 0.0)
+
+            # Priority 3: Use delta xT for other actions
+            else:
+                labels[i] = delta_xt.iloc[end_idx]
+
+        return labels
 
     def process_match(self, match_id: int, home_team_id: int, events_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -231,7 +284,7 @@ class SequencePreprocessor:
            a. Extract features (_extract_features: StatsBomb → SPADL + computed features)
            b. Normalize features (_normalize_features: DataFrame → numpy array)
            c. Create sequences (_create_sequences: sliding window)
-           d. Create labels (_create_labels: xG or 0)
+           d. Create labels (_create_labels: goal=1.0, shot=xG, other=Δ_xT)
         3. Concatenate all sequences from all possessions
 
         Args:
@@ -241,8 +294,11 @@ class SequencePreprocessor:
 
         Returns:
             Tuple of (X, y) where:
-                - X is array of sequences with shape (n_sequences, sequence_length, ~38)
-                - y is array of labels with shape (n_sequences,)
+                - X is array of sequences with shape (n_sequences, sequence_length, ~45)
+                - y is array of labels with shape (n_sequences,) where:
+                    * 1.0 = sequence ends with a goal
+                    * 0.0-1.0 = sequence ends with a shot (xG value)
+                    * Δ_xT = sequence ends with other action (can be negative)
         """
         print(f"Processing match {match_id}: {len(events_df)} events")
 

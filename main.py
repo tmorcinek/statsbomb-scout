@@ -78,7 +78,8 @@ def single_match_pipeline():
     # Preprocess data
     preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH)
     possessions = preprocessor._extract_possessions(events)
-    possession = next((x for x in possessions if x.iloc[0]["possession"] == 2), None)
+    # possession = next((x for x in possessions if x.iloc[0]["possession"] == 2), None)
+    possession = possessions[0]
     print(f"possessions length: {len(possession)}")
     print(possession)
     features = preprocessor._extract_features(possession.copy(), match["home_team_id"])
