@@ -48,12 +48,17 @@ class SequencePreprocessor:
         """
         Extract features from possession events and return as DataFrame.
 
+        Converts StatsBomb events to SPADL actions and adds:
+        - Geometric features (dx, dy, distance, angle)
+        - Temporal features (time_diff between actions)
+        - Contextual features (duration, under_pressure, counterpress)
+
         Args:
-            possession: DataFrame with possession events
-            home_team_id: ID of home team
+            possession: DataFrame with StatsBomb possession events
+            home_team_id: ID of home team (required for SPADL conversion)
 
         Returns:
-            DataFrame with extracted features (not normalized)
+            DataFrame with SPADL actions and additional computed features (not normalized)
         """
         # Convert possession to SPADL actions
         actions = spadl.statsbomb.convert_to_actions(possession, home_team_id)
@@ -85,11 +90,18 @@ class SequencePreprocessor:
         """
         Normalize features and convert to numpy array with one-hot encoding.
 
+        Creates ML-ready feature vectors with:
+        - Spatial features (4): normalized start_x, start_y, end_x, end_y (0-1)
+        - Geometric features (3): normalized distance, sin(angle), cos(angle)
+        - Temporal features (1): time_diff capped at 10s and normalized
+        - Contextual features (2): under_pressure, counterpress as floats
+        - Categorical features (~28): one-hot encoded type_id, result_id, bodypart_id
+
         Args:
-            features_df: DataFrame with extracted features
+            features_df: DataFrame with extracted features from _extract_features()
 
         Returns:
-            Normalized feature array of shape (n_actions, n_features)
+            Normalized feature array of shape (n_actions, ~38 features)
         """
         # zero hot encoding sizes
         n_types = len(spadl_config.actiontypes)
@@ -144,34 +156,50 @@ class SequencePreprocessor:
 
     def _create_sequences(self, features: np.ndarray) -> List[np.ndarray]:
         """
-        Create fixed-length sequences from features.
+        Create fixed-length sequences from features using sliding window.
+
+        Generates overlapping sequences of actions from a possession.
+        Example: if features has 7 actions and sequence_length=3:
+        - Sequence 1: actions[0:3]
+        - Sequence 2: actions[1:4] (shifted by 1)
+        - Sequence 3: actions[2:5]
+        - etc.
 
         Args:
-            features: Feature array
+            features: Feature array of shape (n_actions, n_features)
 
         Returns:
-            List of sequences, each of length sequence_length
+            List of sequences, each with shape (sequence_length, n_features)
         """
-        sequences = []
+        if len(features) < self.sequence_length:
+            return []
 
-        # TODO: Create sliding windows of length sequence_length
+        sequences = []
         for i in range(len(features) - self.sequence_length + 1):
             sequence = features[i:i + self.sequence_length]
             sequences.append(sequence)
 
         return sequences
 
-    def _create_labels(self, possession_df: pd.DataFrame,
-                       sequence_indices: List[int]) -> np.ndarray:
+    def _create_labels(self, actions_df: pd.DataFrame, sequence_indices: List[int]) -> np.ndarray:
         """
-        Create labels for sequences (xG of shot or 0).
+        Create labels for sequences based on possession outcome.
+
+        For each sequence, the label represents the expected value:
+        - If sequence ends with a shot: use shot_statsbomb_xg value
+        - Otherwise: 0.0
+
+        TODO: Currently returns placeholder 0.0 values. Needs implementation to:
+        1. Check if action at sequence_end is a shot (type_id == shot)
+        2. Extract xG value from original StatsBomb event
+        3. Return xG or 0.0
 
         Args:
-            possession_df: DataFrame with possession events
-            sequence_indices: Starting indices of sequences
+            actions_df: DataFrame with SPADL actions from _extract_features()
+            sequence_indices: List of starting indices for each sequence
 
         Returns:
-            Array of labels
+            Array of labels with shape (n_sequences,)
         """
         labels = []
 
@@ -180,8 +208,8 @@ class SequencePreprocessor:
 
             # TODO: Check if sequence ends with a shot
             # If yes, use xG value; if no, use 0
-            # Example: check if possession_df.iloc[end_idx-1]['type'] == 'Shot'
-            # label = possession_df.iloc[end_idx-1].get('shot_statsbomb_xg', 0)
+            # Example: check if actions_df.iloc[end_idx-1]['type_name'] == 'shot'
+            # Then map back to original event to get shot_statsbomb_xg
 
             labels.append(0)  # Placeholder
 
@@ -189,16 +217,25 @@ class SequencePreprocessor:
 
     def process_match(self, match_id: int, home_team_id: int, events_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Process a single match into sequences.
+        Process a single match into ML-ready sequences.
+
+        Pipeline:
+        1. Extract possessions (filter by team)
+        2. For each possession:
+           a. Extract features (_extract_features: StatsBomb → SPADL + computed features)
+           b. Normalize features (_normalize_features: DataFrame → numpy array)
+           c. Create sequences (_create_sequences: sliding window)
+           d. Create labels (_create_labels: xG or 0)
+        3. Concatenate all sequences from all possessions
 
         Args:
-            match_id: ID of the match
-            home_team_id: ID of the home team
-            events_df: DataFrame with events from one match
+            match_id: ID of the match (for logging)
+            home_team_id: ID of the home team (required for SPADL conversion)
+            events_df: DataFrame with StatsBomb events from one match
 
         Returns:
             Tuple of (X, y) where:
-                - X is array of sequences with shape (n_sequences, sequence_length, n_features)
+                - X is array of sequences with shape (n_sequences, sequence_length, ~38)
                 - y is array of labels with shape (n_sequences,)
         """
         print(f"Processing match {match_id}: {len(events_df)} events")
@@ -210,15 +247,15 @@ class SequencePreprocessor:
         all_labels = []
 
         for possession in possessions:
-            # Create features for each action in possession
-            # features = self._create_features(possession)
-            features = spadl.statsbomb.convert_to_actions(possession, home_team_id)
+            # Extract and normalize features
+            features_df = self._extract_features(possession, home_team_id)
+            features = self._normalize_features(features_df)
 
-            # Create sequences from features
+            # Create sequences from features (sliding window)
             sequences = self._create_sequences(features)
 
             # Generate labels for each sequence
-            labels = self._create_labels(possession, list(range(len(sequences))))
+            labels = self._create_labels(features_df, list(range(len(sequences))))
 
             all_sequences.extend(sequences)
             all_labels.extend(labels)
@@ -235,13 +272,32 @@ class SequencePreprocessor:
         """
         Process multiple matches from generator or list into sequences.
 
+        Calls process_match() for each match and concatenates all results.
+        Automatically extracts match_id and home_team_id from match metadata.
+
         Args:
-            matches: Generator or list yielding/containing (match_id, events_df) tuples
+            matches: Generator or list yielding/containing (match, events_df) tuples where:
+                - match: pd.Series with match metadata (must include 'match_id' and 'home_team_id')
+                - events_df: pd.DataFrame with StatsBomb events for that match
 
         Returns:
             Tuple of (X, y) where:
-                - X is array of all sequences with shape (n_sequences, sequence_length, n_features)
+                - X is array of all sequences with shape (n_sequences, sequence_length, ~38)
                 - y is array of all labels with shape (n_sequences,)
+
+        Example:
+            >>> from src.data_loader import load_statsbomb_socceraction_data
+            >>> from src.data_splitter import split_matches
+            >>> preprocessor = SequencePreprocessor(sequence_length=10)
+            >>>
+            >>> # Using generator
+            >>> matches_gen = load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282)
+            >>> X, y = preprocessor.process_matches(matches_gen)
+            >>>
+            >>> # Using list from split_matches
+            >>> matches_gen = load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282)
+            >>> train_matches, val_matches, test_matches = split_matches(matches_gen)
+            >>> X_train, y_train = preprocessor.process_matches(train_matches)
         """
         all_X = []
         all_y = []
