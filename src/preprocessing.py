@@ -4,9 +4,9 @@ from typing import List, Tuple, Generator, Union
 
 import numpy as np
 import pandas as pd
-
 import socceraction.spadl as spadl
 import socceraction.spadl.config as spadl_config
+
 
 class SequencePreprocessor:
     """Preprocesses event data into fixed-length sequences with features."""
@@ -81,141 +81,66 @@ class SequencePreprocessor:
 
         return actions
 
-    def _create_action_features(self, possession: pd.DataFrame, home_team_id: int) -> np.ndarray:
+    def _normalize_features(self, features_df: pd.DataFrame) -> np.ndarray:
         """
-        Create ML-ready features from possession events.
+        Normalize features and convert to numpy array with one-hot encoding.
 
         Args:
-            possession: DataFrame with possession events
-            home_team_id: ID of home team
+            features_df: DataFrame with extracted features
 
         Returns:
-            Feature array of shape (n_actions, n_features)
+            Normalized feature array of shape (n_actions, n_features)
         """
-        # Convert possession to SPADL actions
-        actions = spadl.statsbomb.convert_to_actions(possession.copy(), home_team_id)
+        # zero hot encoding sizes
+        n_types = len(spadl_config.actiontypes)
+        n_results = len(spadl_config.results)
+        n_bodyparts = len(spadl_config.bodyparts)
+        cap_time = 10.0
 
-        if len(actions) == 0:
-            return np.array([])
+        # 1. Spatial features (normalized to 0-1)
+        spatial = features_df[['start_x', 'start_y', 'end_x', 'end_y']].values / [
+            spadl_config.field_length, spadl_config.field_width,
+            spadl_config.field_length, spadl_config.field_width
+        ]
 
-        features = []
+        # 2. Geometric features
+        geometric = np.column_stack([
+            features_df['distance'].values / spadl_config.field_length,
+            np.sin(features_df['angle'].values),
+            np.cos(features_df['angle'].values)
+        ])
 
-        for idx, action in actions.iterrows():
-            action_features = []
+        # 3. Temporal features (capped at 10 seconds)
+        temporal = np.minimum(features_df['time_diff'].values / cap_time, 1.0).reshape(-1, 1)
 
-            # 1. Spatial features (normalized to 0-1)
-            action_features.extend([
-                action['start_x'] / spadl_config.field_length,
-                action['start_y'] / spadl_config.field_width,
-                action['end_x'] / spadl_config.field_length,
-                action['end_y'] / spadl_config.field_width
-            ])
+        # 4. Contextual features (boolean to float)
+        contextual = features_df[['under_pressure', 'counterpress']].astype(float).values
 
-            # 2. Geometric features
-            dx = action['end_x'] - action['start_x']
-            dy = action['end_y'] - action['start_y']
-            distance = np.sqrt(dx ** 2 + dy ** 2)
-            angle = np.arctan2(dy, dx)
+        # 5. Categorical features (one-hot encoding)
+        def one_hot_numpy(ids, K, dtype=np.uint8):
+            a = np.asarray(ids)
 
-            action_features.extend([
-                distance / spadl_config.field_length,
-                np.sin(angle),
-                np.cos(angle)
-            ])
+            valid = (~np.isnan(a)) if a.dtype.kind == "f" else (a >= 0)
+            idx = np.where(valid, a, -1).astype(np.int64)
 
-            # 3. Temporal features
-            if idx > 0:
-                prev_action = actions.iloc[idx - 1]
-                time_diff = action['time_seconds'] - prev_action['time_seconds']
-                action_features.append(min(time_diff / 10.0, 1.0))
-            else:
-                action_features.append(0.0)
+            out = np.zeros((len(a), K), dtype=dtype)
+            rows = np.nonzero(valid)[0]
+            out[rows, idx[rows]] = 1
+            return out
 
-            # 4. Contextual features from original possession events
-            possession_event = possession[possession['timestamp'] == action.get('timestamp')]
-            under_pressure = False
-            counterpress = False
+        type_onehot = one_hot_numpy(features_df["type_id"], n_types)  # np.uint8
+        result_onehot = one_hot_numpy(features_df["result_id"], n_results)
+        bodypart_onehot = one_hot_numpy(features_df["bodypart_id"], n_bodyparts)
 
-            if not possession_event.empty:
-                under_pressure = possession_event.iloc[0].get('under_pressure', False)
-                counterpress = possession_event.iloc[0].get('counterpress', False)
-
-            action_features.extend([
-                float(under_pressure),
-                float(counterpress)
-            ])
-
-            # 5. Categorical features (one-hot encoding)
-            type_id = action['type_id']
-            type_onehot = [1.0 if i == type_id else 0.0 for i in range(20)]
-            action_features.extend(type_onehot)
-
-            result_id = action['result_id']
-            result_onehot = [1.0 if i == result_id else 0.0 for i in range(3)]
-            action_features.extend(result_onehot)
-
-            bodypart_id = action['bodypart_id']
-            bodypart_onehot = [1.0 if i == bodypart_id else 0.0 for i in range(5)]
-            action_features.extend(bodypart_onehot)
-
-            features.append(action_features)
-
-        return np.array(features, dtype=np.float32)
-
-    def _create_features(self, possession_df: pd.DataFrame) -> np.ndarray:
-        """
-        Create feature vectors for each action in possession.
-
-        Args:
-            possession_df: DataFrame with events from one possession
-
-        Returns:
-            Feature array of shape (n_actions, n_features)
-        """
-        features = []
-        previous_timestamp = None
-
-        for idx, row in possession_df.iterrows():
-            action_features = []
-
-            # 1. Location coordinates (x, y)
-            location = row.get('location', [0, 0])
-            x, y = location[0] if len(location) > 0 else 0, location[1] if len(location) > 1 else 0
-            action_features.extend([x, y])
-
-            # 2. End location (for passes/carries)
-            end_location = row.get('pass_end_location') or row.get('carry_end_location', [x, y])
-            x_end = end_location[0] if len(end_location) > 0 else x
-            y_end = end_location[1] if len(end_location) > 1 else y
-            action_features.extend([x_end, y_end])
-
-            # 3. Action type (one-hot or integer encoding)
-            action_type = row['type']
-            if action_type not in self.action_type_mapping:
-                self.action_type_mapping[action_type] = len(self.action_type_mapping)
-            action_features.append(self.action_type_mapping[action_type])
-
-            # 4. Pass/movement metrics
-            distance = np.sqrt((x_end - x) ** 2 + (y_end - y) ** 2)
-            angle = np.arctan2(y_end - y, x_end - x)
-            action_features.extend([distance, angle])
-
-            # 5. Time delta from previous action
-            current_timestamp = pd.to_datetime(row['timestamp'])
-            if previous_timestamp is not None:
-                time_delta = (current_timestamp - previous_timestamp).total_seconds()
-            else:
-                time_delta = 0.0
-            action_features.append(time_delta)
-            previous_timestamp = current_timestamp
-
-            # 6. Contextual flags
-            under_pressure = 1.0 if row.get('under_pressure', False) else 0.0
-            action_features.append(under_pressure)
-
-            features.append(action_features)
-
-        return np.array(features, dtype=np.float32)
+        return np.concatenate([
+            spatial,
+            geometric,
+            temporal,
+            contextual,
+            type_onehot,
+            result_onehot,
+            bodypart_onehot
+        ], axis=1).astype(np.float32)
 
     def _create_sequences(self, features: np.ndarray) -> List[np.ndarray]:
         """

@@ -82,8 +82,12 @@ def single_match_pipeline():
     print(f"possessions length: {len(possession)}")
     print(possession)
     features = preprocessor._extract_features(possession.copy(), match["home_team_id"])
-    # features = spadl.statsbomb.convert_to_actions(possession.copy(), home_team_id)
     print(features)
+
+    normalized_features = preprocessor._normalize_features(features)
+    print(normalized_features)
+    print(normalized_features.shape)
+    # features = spadl.statsbomb.convert_to_actions(possession.copy(), home_team_id)
 
     # first_features = preprocessor._create_features(first)
     # third_features = preprocessor._create_features(third)
