@@ -20,7 +20,8 @@ def main():
 
     # 1a. Load data
     print("\n1a. Loading data...")
-    data = load_statsbomb_data( 55, 282)
+    # data = load_statsbomb_data( 55, 282)
+    data = load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282)
 
     # 1b. Splitting data
     print("\n1b. Splitting data...")
@@ -70,41 +71,22 @@ def main():
 
 def single_match_pipeline():
     # Load events for the match
-
-    match, events = next(load_statsbomb_data(55, 282))
-
-    # Preprocess data
-    preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH)
-    possessions = preprocessor._extract_possessions(events)
-    possession = next((x for x in possessions if x.iloc[0]["possession"] == 2), None)
-    print(f"length: {len(possession)}:\n {possession}")
-    # first["extra"] = pd.NA
-    # actions = spadl.statsbomb.convert_to_actions(first, home_team_id)
-    # print(actions)
-    # first_features = preprocessor._create_features(first)
-    # third_features = preprocessor._create_features(third)
-    # print(f"First possession features:\n{first_features}")
-    # print(f"Third possession features:\n{third_features}")
-
-def socceration_pipeline():
-
-    # Load events for the match
+    # match, events = next(load_statsbomb_data(55, 282))
     match, events = next(load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282))
 
     # match, events = next(load_statsbomb_data(55, 282))
-    home_team_id = match["home_team_id"]
-
     # Preprocess data
     preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH)
     possessions = preprocessor._extract_possessions(events)
     possession = next((x for x in possessions if x.iloc[0]["possession"] == 2), None)
-    print(f"length: {len(possession)}:\n {possession}")    # first["extra"] = pd.NA
-    actions = spadl.statsbomb.convert_to_actions(possession, home_team_id)
-    print(actions)
+    print(f"possessions length: {len(possession)}")
+    print(possession)
+    features = preprocessor._extract_features(possession.copy(), match["home_team_id"])
+    # features = spadl.statsbomb.convert_to_actions(possession.copy(), home_team_id)
+    print(features)
+
     # first_features = preprocessor._create_features(first)
     # third_features = preprocessor._create_features(third)
-    # print(f"First possession features:\n{actions}")
-    # print(f"Third possession features:\n{third_features}")
 
 
 if __name__ == "__main__":
@@ -113,7 +95,6 @@ if __name__ == "__main__":
     pd.set_option('display.max_columns', None)
 
     # main()
-    # single_match_pipeline()
-    socceration_pipeline()
+    single_match_pipeline()
 
 

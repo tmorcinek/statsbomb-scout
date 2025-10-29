@@ -19,9 +19,13 @@ def load_statsbomb_data(competition_id: int, season_id: int) -> Generator[Tuple[
         try:
             events = sb.events(match_id)
             events = _filter_relevant_events(events)
+            # For compatibility with socceraction
             events['possession_team_name'] = events['possession_team']
             events['team_name'] = events['team']
+            events['type_name'] = events['type']
             match["home_team_id"] = get_home_team_id(match, events)
+            match["game_id"] = match['match_id']
+
             yield match, events
         except Exception as e:
             print(f"Warning: Failed to load events for match {match_id}: {e}")
