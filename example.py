@@ -14,7 +14,8 @@ from pathlib import Path
 
 # Import project modules
 import config
-from src.data_loader import StatsBombDataLoader
+from src.data_loader import load_statsbomb_socceraction_data
+from src.data_splitter import split_matches
 from src.preprocessing import SequencePreprocessor
 from src.model import create_model
 from src.train import ModelTrainer
@@ -53,14 +54,24 @@ def example_with_dummy_data():
     print(f"   Created {len(dummy_events)} dummy events")
     print(f"   Event types: {dummy_events['type'].value_counts().to_dict()}")
 
-    # 2. Preprocess data (simplified version)
-    print("\n2. Creating dummy sequences...")
-    # For demonstration, create random sequences
-    n_sequences = 100
-    n_features = 9  # number of features per action
+    # 2. Preprocess data into sequences
+    print("\n2. Preprocessing events into sequences...")
+    preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH)
 
-    X = np.random.randn(n_sequences, config.SEQUENCE_LENGTH, n_features)
-    y = np.random.uniform(0, 0.5, n_sequences)  # Random xG values
+    # For demo: create random sequences (replace with real data using load_statsbomb_socceraction_data)
+    # Example real usage:
+    # matches_gen = load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282)
+    # train_matches, val_matches, test_matches = split_matches(matches_gen)
+    # X_train, y_train = preprocessor.process_matches(train_matches)
+    # X_val, y_val = preprocessor.process_matches(val_matches)
+    # X_test, y_test = preprocessor.process_matches(test_matches)
+
+    # For now, using dummy sequences
+    n_sequences = 100
+    n_features = 45  # Actual number of features from preprocessing
+
+    X = np.random.randn(n_sequences, config.SEQUENCE_LENGTH, n_features).astype(np.float32)
+    y = np.random.uniform(0, 0.5, n_sequences)
 
     print(f"   Created {n_sequences} sequences")
     print(f"   Sequence shape: {X.shape}")
@@ -90,7 +101,7 @@ def example_with_dummy_data():
             model_type='lstm',
             input_shape=input_shape,
             lstm_units=config.LSTM_UNITS,
-            dropout=config.LSTM_DROPOUT
+            lstm_dropout=config.LSTM_DROPOUT
         )
     else:
         model = create_model(
@@ -99,7 +110,8 @@ def example_with_dummy_data():
             num_heads=config.TRANSFORMER_HEADS,
             d_model=config.TRANSFORMER_DIM,
             ff_dim=config.TRANSFORMER_FF_DIM,
-            num_blocks=config.TRANSFORMER_BLOCKS
+            num_blocks=config.TRANSFORMER_BLOCKS,
+            dropout=0.2
         )
 
     print("\n   Model architecture:")
@@ -129,10 +141,10 @@ def example_with_dummy_data():
     print("Example completed successfully!")
     print("=" * 60)
     print("\nNext steps:")
-    print("1. Replace dummy data with real StatsBomb events")
-    print("2. Implement proper feature extraction in preprocessing.py")
-    print("3. Adjust hyperparameters in config.py")
-    print("4. Train on full dataset with more epochs")
+    print("1. Replace dummy sequences with real StatsBomb data (see commented code above)")
+    print("2. Adjust hyperparameters in config.py based on validation results")
+    print("3. Train on full dataset with more epochs")
+    print("4. Implement player/team evaluation using trained model")
 
 
 def load_statsbomb_data_example():
@@ -140,28 +152,29 @@ def load_statsbomb_data_example():
     Example of how to load real StatsBomb data.
     Uncomment and adapt when you have real data.
     """
-    print("\nExample: Loading StatsBomb data")
+    print("\nExample: Loading StatsBomb data with full pipeline")
     print("-" * 40)
 
-    # Using statsbombpy library
-    # from statsbombpy import sb
+    # Using our data loader with socceraction
+    # from src.data_loader import load_statsbomb_socceraction_data
+    # from src.data_splitter import split_matches
+    # from src.preprocessing import SequencePreprocessor
     #
-    # # Get competitions
-    # competitions = sb.competitions()
-    # print(competitions.head())
+    # # Load data (competition_id=55, season_id=282 is Women's World Cup 2019)
+    # matches_gen = load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282)
     #
-    # # Get matches from a competition
-    # matches = sb.matches(competition_id=11, season_id=90)
-    # print(f"Found {len(matches)} matches")
+    # # Split into train/val/test
+    # train_matches, val_matches, test_matches = split_matches(matches_gen)
     #
-    # # Get events from a match
-    # events = sb.events(match_id=matches.iloc[0]['match_id'])
-    # print(f"Found {len(events)} events")
-    # print(events.columns)
+    # # Preprocess into sequences
+    # preprocessor = SequencePreprocessor(sequence_length=10)
+    # X_train, y_train = preprocessor.process_matches(train_matches)
+    # X_val, y_val = preprocessor.process_matches(val_matches)
+    # X_test, y_test = preprocessor.process_matches(test_matches)
     #
-    # # Save to file
-    # events.to_csv('data/raw/events.csv', index=False)
-    # print("Events saved to data/raw/events.csv")
+    # print(f"Training: {X_train.shape}")
+    # print(f"Validation: {X_val.shape}")
+    # print(f"Test: {X_test.shape}")
 
     print("(Uncomment the code above to load real data)")
 
