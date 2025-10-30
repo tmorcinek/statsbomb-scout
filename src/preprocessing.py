@@ -205,58 +205,7 @@ class SequencePreprocessor:
 
         return np.lib.stride_tricks.sliding_window_view(features, (self.sequence_length, features.shape[1])).squeeze(1)
 
-    def _calculate_delta_xt(self, actions_df: pd.DataFrame) -> pd.Series:
-        """
-        Calculate delta xT (change in Expected Threat) for each action.
-
-        Δ_xT = xT(end position) - xT(start position)
-        Positive values indicate actions that move the ball closer to scoring.
-
-        Args:
-            actions_df: DataFrame with SPADL actions containing start_x, start_y, end_x, end_y
-
-        Returns:
-            Series with delta xT values for each action
-        """
-        # Get xT values for start and end positions
-        start_xt = self.xt_model.get_xt_value(
-            actions_df['start_x'].values,
-            actions_df['start_y'].values
-        )
-        end_xt = self.xt_model.get_xt_value(
-            actions_df['end_x'].values,
-            actions_df['end_y'].values
-        )
-
-        # Calculate delta
-        delta_xt = end_xt - start_xt
-
-        return pd.Series(delta_xt, index=actions_df.index)
-
     def _create_simple_sequence(self, features: np.ndarray) -> np.ndarray:
-        """
-        Create a single sequence from the last N actions (simple version without sliding window).
-
-        Takes only the last `sequence_length` actions from possession and returns them as
-        a single sequence. This is simpler than sliding window approach and returns only
-        one sequence per possession.
-
-        Example with 12 actions and sequence_length=10:
-            Input:  [A1, A2, A3, ..., A10, A11, A12]
-            Output: [[A3, A4, A5, ..., A10, A11, A12]]
-            → 1 sequence (last 10 actions)
-
-        Args:
-            features: Feature array of shape (n_actions, n_features)
-                     Must have at least sequence_length rows
-
-        Returns:
-            Array of shape (1, sequence_length, n_features) containing only the last
-            sequence_length actions from the input
-
-        Raises:
-            ValueError: If features has fewer rows than sequence_length
-        """
         if len(features) < self.sequence_length:
             raise ValueError(f"Insufficient number of actions ({len(features)}) for sequence length {self.sequence_length}.")
 
@@ -321,9 +270,8 @@ class SequencePreprocessor:
                     * 0.0-1.0 = last action is a shot (xG value)
                     * Δ_xT = last action is another type (can be negative)
         """
-        print(f"Processing match {match_id}: {len(events_df)} events")
+        print(f"→Processing match {match_id}: {len(events_df)} events")
 
-        # Extract possessions from match
         possessions = self._extract_possessions(events_df)
 
         all_sequences = []
@@ -334,19 +282,20 @@ class SequencePreprocessor:
             features = self._extract_features(possession, home_team_id)
             print(f"  → Possession {possession['possession'].iloc[0]}: {len(features)} actions")
             if len(features) < self.sequence_length:
+                print(f"  → Possession too short, consist of only {len(features)} actions")
                 continue
 
             # Normalize features
             normalized_features = self._normalize_features(features)
-            print(f"    → Normalized features shape: {normalized_features.shape}")
+            print(f"  →  Normalized features shape: {normalized_features.shape}")
 
             # Create simple sequence (last N actions only)
             sequence = self._create_simple_sequence(normalized_features)
-            print(f"    -> Created sequence shape: {sequence.shape}")
+            print(f"  →  Created sequence shape: {sequence.shape}")
 
             # Generate label for the last action in the sequence
             labels = self._create_label(features.tail(self.sequence_length))
-            print(f"    -> Created label: {labels}")
+            print(f"  →  Created label: {labels}")
 
             all_sequences.append(sequence)
             all_labels.append(labels)
@@ -355,7 +304,7 @@ class SequencePreprocessor:
         X = np.concatenate(all_sequences) if all_sequences else np.array([]).reshape(0, self.sequence_length, 0)
         y = np.concatenate(all_labels) if all_labels else np.array([])
 
-        print(f"  → Generated {len(X)} sequences, {len(y)} labels for match {match_id}")
+        print(f" → Generated {len(X)} sequences, {len(y)} labels for match {match_id}")
 
         return X, y
 
