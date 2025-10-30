@@ -8,13 +8,22 @@ from numpy._typing import _64Bit
 from socceraction.xthreat import ExpectedThreat
 
 
-def calculate_xg_value(event: pd.Series) -> float:
-    if event['type_name'] != 'Shot':
-        return 0.0
-    shot_data = event['extra']['shot']
-    if shot_data['outcome']['name'] == 'Goal':
-        return 1.0
-    return shot_data['statsbomb_xg']
+def calculate_xg_value(events: pd.DataFrame) -> pd.Series:
+    xg_values = pd.Series(0.0, index=events.index)
+    shots = events[events["type_name"] == "Shot"]
+
+    if shots.empty:
+        return xg_values
+
+    def extract_xg(extra):
+        shot = extra.get("shot", {})
+        outcome = shot.get("outcome", {}).get("name")
+        if outcome == "Goal":
+            return 1.0
+        return shot.get("statsbomb_xg", 0.0)
+
+    xg_values.loc[shots.index] = shots["extra"].map(extract_xg)
+    return xg_values
 
 
 def calculate_xt_values(actions: pd.DataFrame, xt_model: ExpectedThreat) -> ndarray[Any, dtype[floating[_64Bit]]]:

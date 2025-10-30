@@ -1,5 +1,6 @@
 """Tests for action_valuation module using real StatsBomb data."""
 
+import numpy as np
 import pandas as pd
 import pytest
 import socceraction.spadl as spadl
@@ -56,11 +57,9 @@ class TestCalculateXGValues:
         game, events = sample_game
 
         goals_df = goals(events)
-        print(goals_df)
-        assert len(goals_df) == 3, "2:1 final score expected in sample data"
 
-        for _, goal in goals_df.iterrows():
-            assert calculate_xg_value(goal) == 1.0, "Goal action should have value 1.0"
+        assert len(goals_df) == 3, "2:1 final score expected in sample data"
+        assert (calculate_xg_value(goals_df) == 1.0).all(), "Goal action should have value 1.0"
 
     def test_shot_values(self, sample_game, xt_model):
         game, events = sample_game
@@ -69,21 +68,24 @@ class TestCalculateXGValues:
         shots_df = shots(events).loc[~shots(events).index.isin(goals_df.index)]
         assert len(shots_df) == 13, "13 shots expected in sample data"
 
-        for _, shot in shots_df.iterrows():
-            assert calculate_xg_value(shot) != 1.0, "Non-goal shot action should not have value 1.0"
-            assert calculate_xg_value(shot) > 0.0, "Shot action should be bigger than 0.0"
-        assert calculate_xg_value(shots_df.iloc[0]) == pytest.approx(0.028932061, abs=1e-4), "First shot xG value mismatch"
-        assert calculate_xg_value(shots_df.iloc[1]) == pytest.approx(0.07174964, abs=1e-4), "First shot xG value mismatch"
-        assert calculate_xg_value(shots_df.iloc[2]) == pytest.approx(0.18899514, abs=1e-4), "First shot xG value mismatch"
-        assert calculate_xg_value(shots_df.iloc[3]) == pytest.approx(0.039829366, abs=1e-4), "First shot xG value mismatch"
+        shots_xg_values = calculate_xg_value(shots_df)
+        assert (shots_xg_values != 1.0).all(), "Non-goal shot action should not have value 1.0"
+        assert (shots_xg_values > 0.0).all(), "Shot action should be bigger than 0.0"
+
+        fist_4_shots = shots_df.head(4)
+        shots_xg_values = list(calculate_xg_value(fist_4_shots))
+        assert np.allclose(shots_xg_values, [0.028932061, 0.07174964, 0.18899514, 0.039829366], atol=1e-4), "Shots xG values mismatch"
 
     def test_passes_values(self, sample_game, xt_model):
         game, events = sample_game
 
         passes_df = events[events['type_name'] == 'Pass']
         first_passes = passes_df.head(5)
-        for _, event_pass in first_passes.iterrows():
-            assert calculate_xg_value(event_pass) == 0.0, "Pass action should have value 0.0"
+        values = calculate_xg_value(first_passes)
+        print(values)
+        assert (values == 0.0).all(), "Pass action should have value 0.0"
+        # for _, event_pass in first_passes.iterrows():
+        #     assert calculate_xg_value(event_pass) == 0.0, "Pass action should have value 0.0"
 
 
 class TestCalculateXTValues:
@@ -98,7 +100,6 @@ class TestCalculateXTValues:
         rates = calculate_xt_values(actions, xt_model)
 
         assert sum(rates) == 0.00814035, "Goal from Xavi Simons xt value mismatch"
-
 
     def test_fake_action(self, xt_model):
         data = {
