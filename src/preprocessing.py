@@ -92,7 +92,7 @@ class SequencePreprocessor:
         actions["time_diff"] = actions["time_seconds"].diff().fillna(0.0)
 
         # 3) Merge contextual features and xG values
-        subset = possession[['event_id', 'duration', 'under_pressure', 'counterpress']]
+        subset = possession[['event_id', 'duration', 'under_pressure', 'counterpress']].copy()
         subset['xG'] = calculate_xg_values(possession)
         actions = actions.merge(subset, left_on='original_event_id', right_on='event_id', how='left').drop(columns='event_id')
         actions = actions.fillna({'duration': 0.0, 'under_pressure': False, 'counterpress': False, 'xG': 0.0})
@@ -278,6 +278,22 @@ class SequencePreprocessor:
         """
         return extract_label_from_last_action(actions_df)
 
+    def _create_label(self, actions_df: pd.DataFrame) -> np.ndarray:
+        """
+        Create label for the last action in possession.
+
+        Sums xG and xT values across all actions and returns the maximum.
+
+        Args:
+            actions_df: DataFrame with SPADL actions containing 'xG' and 'xT' columns
+
+        Returns:
+            Array with single label value (max of summed xG and summed xT)
+        """
+        total_xg = actions_df['xG'].sum()
+        total_xt = actions_df['xT'].sum()
+        return np.array([max(total_xg, total_xt)])
+
     def process_match(self, match_id: int, home_team_id: int, events_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
         """
         Process a single match into ML-ready sequences (simple version - one sequence per possession).
@@ -316,30 +332,30 @@ class SequencePreprocessor:
         for possession in possessions:
             # Extract features
             features = self._extract_features(possession, home_team_id)
+            print(f"  → Possession {possession['possession'].iloc[0]}: {len(features)} actions")
             if len(features) < self.sequence_length:
                 continue
 
-            # Calculate value for each action (goal=1.0, shot=xG, other=delta_xT)
-            # features['xG'] = calculate_xg_value(features)
-            features['xT'] = calculate_xt_values(features, self.xt_model)
-            # features['value'] = calculate_action_values(features, possession, self.xt_model)
-
             # Normalize features
             normalized_features = self._normalize_features(features)
+            print(f"    → Normalized features shape: {normalized_features.shape}")
 
             # Create simple sequence (last N actions only)
             sequence = self._create_simple_sequence(normalized_features)
+            print(f"    -> Created sequence shape: {sequence.shape}")
 
             # Generate label for the last action in the sequence
-            labels = self._create_labels(features.tail(self.sequence_length))
+            labels = self._create_label(features.tail(self.sequence_length))
+            print(f"    -> Created label: {labels}")
 
             all_sequences.append(sequence)
             all_labels.append(labels)
+            print(f"Added sequence {sequence.shape}, label {labels}")
 
         X = np.concatenate(all_sequences) if all_sequences else np.array([]).reshape(0, self.sequence_length, 0)
         y = np.concatenate(all_labels) if all_labels else np.array([])
 
-        print(f"  → Generated {len(X)} sequences")
+        print(f"  → Generated {len(X)} sequences, {len(y)} labels for match {match_id}")
 
         return X, y
 

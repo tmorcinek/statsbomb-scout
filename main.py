@@ -1,5 +1,4 @@
 """Main script to run the full pipeline."""
-from setuptools.dist import sequence
 
 import config
 import pandas as pd
@@ -81,26 +80,9 @@ def single_match_pipeline():
     # match, events = next(load_statsbomb_data(55, 282))
     # Preprocess data
     preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH, xt_model=get_default_xt_model())
-    possessions = preprocessor._extract_possessions(events)
-    possession = next((x for x in possessions if len(x) in range(17, 20)), None)
-    # possession = next((x for x in possessions if x.iloc[0]["possession"] == 2), None)
-    # possession = next((x for x in possessions if len(x) in [11..14]), None)
-    # possession = possessions[1]
-    print(f"Possession: \n{possession}" )
-    features_df = preprocessor._extract_features(possession.copy(), match["home_team_id"])
-    print(f"Extracted features: \n {features_df}" )
+    process_match = preprocessor.process_match(match['game_id'], match["home_team_id"], events)
 
-    normalized_features = preprocessor._normalize_features(features_df)
-    sequences = preprocessor._create_sequences(normalized_features)
-
-    # print(normalized_features)
-    print(normalized_features.shape)
-    print(len(sequences))
-    print(list(range(len(sequences))))
-    # features = spadl.statsbomb.convert_to_actions(possession.copy(), home_team_id)
-
-    # first_features = preprocessor._create_features(first)
-    # third_features = preprocessor._create_features(third)
+    print(len(process_match))
 
 
 if __name__ == "__main__":
