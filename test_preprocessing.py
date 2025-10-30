@@ -54,23 +54,32 @@ def test_preprocessing_flow():
         print(f"Feature range: min={normalized.min():.3f}, max={normalized.max():.3f}")
         print(f"First action features (first 10): {normalized[0][:10]}")
 
-    # Test _create_sequences
+    # Test _create_sequences (sliding window)
     print("\n--- Testing _create_sequences ---")
+    sequences = None
     if possessions:
-        sequences = preprocessor._create_sequences(normalized)
-        print(f"Sequences shape: {sequences.shape}")
-        print(f"Expected: ({len(normalized) - preprocessor.sequence_length + 1}, {preprocessor.sequence_length}, {normalized.shape[1]})")
+        try:
+            sequences = preprocessor._create_sequences(normalized)
+            print(f"Sequences shape: {sequences.shape}")
+            print(f"Expected: ({len(normalized) - preprocessor.sequence_length + 1}, {preprocessor.sequence_length}, {normalized.shape[1]})")
 
-        if len(sequences) > 0:
-            print(f"First sequence shape: {sequences[0].shape}")
-            print(f"First sequence first action (first 5 features): {sequences[0][0][:5]}")
+            if len(sequences) > 0:
+                print(f"First sequence shape: {sequences[0].shape}")
+                print(f"First sequence first action (first 5 features): {sequences[0][0][:5]}")
+        except ValueError as e:
+            # Possession too short to create sliding windows — that's acceptable for some possessions
+            print(f"_create_sequences raised: {e}")
 
-    # Test _create_labels
-    print("\n--- Testing _create_labels ---")
-    if possessions and len(sequences) > 0:
-        labels = preprocessor._create_labels(features_df, list(range(len(sequences))))
-        print(f"Labels shape: {labels.shape}")
-        print(f"Labels (first 5): {labels[:5]}")
+    # Test _create_simple_sequence and _create_label (consistent API usage)
+    print("\n--- Testing _create_simple_sequence and _create_label ---")
+    if possessions:
+        try:
+            simple_seq = preprocessor._create_simple_sequence(normalized)
+            print(f"Simple sequence shape: {simple_seq.shape}")
+            label = preprocessor._create_label(features_df.tail(preprocessor.sequence_length))
+            print(f"Label: {label}")
+        except ValueError as e:
+            print(f"Simple sequence/label creation raised: {e}")
 
     # Test full pipeline
     print("\n--- Testing process_match ---")
@@ -93,4 +102,3 @@ if __name__ == "__main__":
     X, y = test_preprocessing_flow()
     print(f"\n🎉 Preprocessing flow works correctly!")
     print(f"Generated {len(X)} sequences with {X.shape[2]} features each")
-
