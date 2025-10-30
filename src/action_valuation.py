@@ -2,6 +2,7 @@
 
 import pandas as pd
 import numpy as np
+import socceraction.spadl as spadl
 from socceraction.xthreat import ExpectedThreat
 from src.xthreat import get_default_xt_model
 
@@ -9,7 +10,7 @@ from src.xthreat import get_default_xt_model
 def calculate_action_values(
     actions_df: pd.DataFrame,
     possession: pd.DataFrame,
-    xt_model: ExpectedThreat = None
+    xt_model: ExpectedThreat
 ) -> pd.Series:
     """
     Calculate value for each action based on xG, goals, and xT.
@@ -32,6 +33,10 @@ def calculate_action_values(
     # Initialize xT model if not provided
     if xt_model is None:
         xt_model = get_default_xt_model()
+
+    # Add type names if not present (SPADL actions have type_id, we need type_name)
+    if 'type_name' not in actions_df.columns:
+        actions_df = spadl.add_names(actions_df)
 
     values = pd.Series(0.0, index=actions_df.index)
 
@@ -71,23 +76,8 @@ def calculate_action_values(
     if non_goal_shots.any():
         values[non_goal_shots] = actions_df.loc[non_goal_shots, 'original_event_id'].map(xg_map).fillna(0.0)
 
-    # Priority 3: Other actions = delta xT
-    is_other = ~is_shot
-    if is_other.any():
-        other_actions = actions_df[is_other]
-
-        # Calculate xT at start and end positions
-        start_xt = xt_model.get_xt_value(
-            other_actions['start_x'].values,
-            other_actions['start_y'].values
-        )
-        end_xt = xt_model.get_xt_value(
-            other_actions['end_x'].values,
-            other_actions['end_y'].values
-        )
-        delta_xt = end_xt - start_xt
-
-        values[is_other] = delta_xt
+    # Note: Other actions (non-shots) remain at 0.0
+    # Delta xT calculation can be added in the future if needed
 
     return values
 
