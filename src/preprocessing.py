@@ -20,7 +20,6 @@ class SequencePreprocessor:
     def __init__(
         self,
         sequence_length: int = 10,
-        minimum_possession_length: int = 10,
         xt_model: ExpectedThreat = None
     ):
         """
@@ -28,11 +27,9 @@ class SequencePreprocessor:
 
         Args:
             sequence_length: Number of actions in each sequence
-            minimum_possession_length: Minimum number of actions in a possession to process
             xt_model: Optional pre-trained xT model. If None, uses default model.
         """
         self.sequence_length = sequence_length
-        self.minimum_possession_length = minimum_possession_length
         self.action_type_mapping = {}
 
     def _extract_possessions(self, events_df: pd.DataFrame) -> List[pd.DataFrame]:
@@ -58,7 +55,7 @@ class SequencePreprocessor:
             team_events = possession_group[possession_group['team_name'] == possession_team]
 
             # Only include possessions with minimum number of events
-            if len(team_events) >= self.minimum_possession_length:
+            if len(team_events) >= self.sequence_length:
                 possessions.append(team_events.copy())
 
         return possessions

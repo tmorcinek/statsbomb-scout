@@ -3,6 +3,8 @@
 import numpy as np
 from src.preprocessing import SequencePreprocessor
 from src.data_loader import load_statsbomb_socceraction_data
+from src.xthreat import get_default_xt_model
+
 
 def test_preprocessing_flow():
     """Test the complete preprocessing pipeline."""
@@ -23,7 +25,7 @@ def test_preprocessing_flow():
     print(f"Home team ID: {home_team_id}")
 
     # Initialize preprocessor
-    preprocessor = SequencePreprocessor(sequence_length=10)
+    preprocessor = SequencePreprocessor(sequence_length=10, xt_model=get_default_xt_model())
 
     # Test _extract_possessions
     print("\n--- Testing _extract_possessions ---")

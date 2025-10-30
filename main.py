@@ -1,4 +1,5 @@
 """Main script to run the full pipeline."""
+from setuptools.dist import sequence
 
 import config
 import pandas as pd
@@ -11,6 +12,9 @@ from src.train import ModelTrainer
 import inspect
 from socceraction.data import statsbomb
 import socceraction.spadl as spadl
+
+from src.xthreat import get_default_xt_model
+
 
 def main():
     """Run the full training pipeline."""
@@ -28,7 +32,7 @@ def main():
     train_matches, val_matches, test_matches = split_matches(data)
 
     # 2. Preprocess data
-    preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH)
+    preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH, xt_model=get_default_xt_model())
     X_train, y_train = preprocessor.process_matches(train_matches)
     X_val, y_val = preprocessor.process_matches(val_matches)
     X_test, y_test = preprocessor.process_matches(test_matches)
@@ -76,18 +80,23 @@ def single_match_pipeline():
 
     # match, events = next(load_statsbomb_data(55, 282))
     # Preprocess data
-    preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH)
+    preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH, xt_model=get_default_xt_model())
     possessions = preprocessor._extract_possessions(events)
+    possession = next((x for x in possessions if len(x) in range(17, 20)), None)
     # possession = next((x for x in possessions if x.iloc[0]["possession"] == 2), None)
-    possession = possessions[0]
-    print(f"possessions length: {len(possession)}")
-    print(possession)
-    features = preprocessor._extract_features(possession.copy(), match["home_team_id"])
-    print(features)
+    # possession = next((x for x in possessions if len(x) in [11..14]), None)
+    # possession = possessions[1]
+    print(f"Possession: \n{possession}" )
+    features_df = preprocessor._extract_features(possession.copy(), match["home_team_id"])
+    print(f"Extracted features: \n {features_df}" )
 
-    normalized_features = preprocessor._normalize_features(features)
-    print(normalized_features)
+    normalized_features = preprocessor._normalize_features(features_df)
+    sequences = preprocessor._create_sequences(normalized_features)
+
+    # print(normalized_features)
     print(normalized_features.shape)
+    print(len(sequences))
+    print(list(range(len(sequences))))
     # features = spadl.statsbomb.convert_to_actions(possession.copy(), home_team_id)
 
     # first_features = preprocessor._create_features(first)
@@ -101,5 +110,3 @@ if __name__ == "__main__":
 
     # main()
     single_match_pipeline()
-
-
