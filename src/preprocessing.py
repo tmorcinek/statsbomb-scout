@@ -1,28 +1,28 @@
 """Module for preprocessing event data into sequences."""
 
+import warnings
 from typing import List, Tuple, Generator, Union
 
 import numpy as np
 import pandas as pd
 import socceraction.spadl as spadl
 import socceraction.spadl.config as spadl_config
-
-import warnings
-
 from socceraction.xthreat import ExpectedThreat
-from src.action_valuation import calculate_action_values, extract_label_from_last_action
+
+from src.action_valuation import calculate_xt_values, extract_label_from_last_action, calculate_xg_values
 from src.xthreat import get_default_xt_model
 
 warnings.filterwarnings('ignore', category=FutureWarning, module='socceraction')
 pd.set_option('future.no_silent_downcasting', True)
 
+
 class SequencePreprocessor:
     """Preprocesses event data into fixed-length sequences with features."""
 
     def __init__(
-        self,
-        sequence_length: int = 10,
-        xt_model: ExpectedThreat = get_default_xt_model()
+            self,
+            sequence_length: int = 10,
+            xt_model: ExpectedThreat = get_default_xt_model()
     ):
         """
         Initialize preprocessor.
@@ -91,10 +91,13 @@ class SequencePreprocessor:
         # 2) Time difference between actions
         actions["time_diff"] = actions["time_seconds"].diff().fillna(0.0)
 
-        # 3) Merge contextual features
+        # 3) Merge contextual features and xG values
         subset = possession[['event_id', 'duration', 'under_pressure', 'counterpress']]
+        subset['xG'] = calculate_xg_values(possession)
         actions = actions.merge(subset, left_on='original_event_id', right_on='event_id', how='left').drop(columns='event_id')
-        actions = actions.fillna({'duration': 0.0, 'under_pressure': False, 'counterpress': False})
+        actions = actions.fillna({'duration': 0.0, 'under_pressure': False, 'counterpress': False, 'xG': 0.0})
+
+        actions['xT'] = calculate_xt_values(actions, self.xt_model)
 
         return actions
 
@@ -317,7 +320,9 @@ class SequencePreprocessor:
                 continue
 
             # Calculate value for each action (goal=1.0, shot=xG, other=delta_xT)
-            features['value'] = calculate_action_values(features, possession, self.xt_model)
+            # features['xG'] = calculate_xg_value(features)
+            features['xT'] = calculate_xt_values(features, self.xt_model)
+            # features['value'] = calculate_action_values(features, possession, self.xt_model)
 
             # Normalize features
             normalized_features = self._normalize_features(features)
@@ -331,14 +336,12 @@ class SequencePreprocessor:
             all_sequences.append(sequence)
             all_labels.append(labels)
 
-
         X = np.concatenate(all_sequences) if all_sequences else np.array([]).reshape(0, self.sequence_length, 0)
         y = np.concatenate(all_labels) if all_labels else np.array([])
 
         print(f"  → Generated {len(X)} sequences")
 
         return X, y
-
 
     def process_matches(self, matches: Union[Generator[Tuple[pd.Series, pd.DataFrame], None, None], List[Tuple[pd.Series, pd.DataFrame]]]) -> Tuple[
         np.ndarray, np.ndarray]:

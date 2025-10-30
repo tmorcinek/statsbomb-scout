@@ -8,7 +8,7 @@ from numpy._typing import _64Bit
 from socceraction.xthreat import ExpectedThreat
 
 
-def calculate_xg_value(events: pd.DataFrame) -> pd.Series:
+def calculate_xg_values(events: pd.DataFrame) -> pd.Series:
     xg_values = pd.Series(0.0, index=events.index)
     shots = events[events["type_name"] == "Shot"]
 
@@ -17,8 +17,7 @@ def calculate_xg_value(events: pd.DataFrame) -> pd.Series:
 
     def extract_xg(extra):
         shot = extra.get("shot", {})
-        outcome = shot.get("outcome", {}).get("name")
-        if outcome == "Goal":
+        if shot.get("outcome", {}).get("name") == "Goal":
             return 1.0
         return shot.get("statsbomb_xg", 0.0)
 

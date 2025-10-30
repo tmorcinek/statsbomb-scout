@@ -6,7 +6,7 @@ import pytest
 import socceraction.spadl as spadl
 from socceraction.data.statsbomb import StatsBombLoader
 
-from src.action_valuation import calculate_xg_value, calculate_xt_values
+from src.action_valuation import calculate_xg_values, calculate_xt_values
 from src.xthreat import get_default_xt_model
 
 pd.set_option('display.width', 1000)
@@ -59,7 +59,7 @@ class TestCalculateXGValues:
         goals_df = goals(events)
 
         assert len(goals_df) == 3, "2:1 final score expected in sample data"
-        assert (calculate_xg_value(goals_df) == 1.0).all(), "Goal action should have value 1.0"
+        assert (calculate_xg_values(goals_df) == 1.0).all(), "Goal action should have value 1.0"
 
     def test_shot_values(self, sample_game, xt_model):
         game, events = sample_game
@@ -68,12 +68,12 @@ class TestCalculateXGValues:
         shots_df = shots(events).loc[~shots(events).index.isin(goals_df.index)]
         assert len(shots_df) == 13, "13 shots expected in sample data"
 
-        shots_xg_values = calculate_xg_value(shots_df)
+        shots_xg_values = calculate_xg_values(shots_df)
         assert (shots_xg_values != 1.0).all(), "Non-goal shot action should not have value 1.0"
         assert (shots_xg_values > 0.0).all(), "Shot action should be bigger than 0.0"
 
         fist_4_shots = shots_df.head(4)
-        shots_xg_values = list(calculate_xg_value(fist_4_shots))
+        shots_xg_values = list(calculate_xg_values(fist_4_shots))
         assert np.allclose(shots_xg_values, [0.028932061, 0.07174964, 0.18899514, 0.039829366], atol=1e-4), "Shots xG values mismatch"
 
     def test_passes_values(self, sample_game, xt_model):
@@ -81,7 +81,7 @@ class TestCalculateXGValues:
 
         passes_df = events[events['type_name'] == 'Pass']
         first_passes = passes_df.head(5)
-        values = calculate_xg_value(first_passes)
+        values = calculate_xg_values(first_passes)
         print(values)
         assert (values == 0.0).all(), "Pass action should have value 0.0"
         # for _, event_pass in first_passes.iterrows():
@@ -140,11 +140,14 @@ class TestCalculateXTValues:
 
         passes_df = events[events['type_name'] == 'Pass']
         first_pass = passes_df.head(1)
-        actions = spadl.statsbomb.convert_to_actions(first_pass, home_team_id=game['home_team_id'], xy_fidelity_version=2)
+        id_ = game['home_team_id']
+        print(id_)
+        actions = spadl.statsbomb.convert_to_actions(first_pass, home_team_id=id_, xy_fidelity_version=2)
 
         rates = calculate_xt_values(actions, xt_model)
         assert len(rates) == len(actions), "xT rate shape mismatch"
         assert rates[0] == pytest.approx(0.01821798, abs=1e-4), "Pass xT value mismatch"
+
 
 
 if __name__ == "__main__":
