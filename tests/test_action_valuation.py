@@ -8,6 +8,10 @@ from socceraction.data.statsbomb import StatsBombLoader
 from src.action_valuation import calculate_xg_value, calculate_xt_values
 from src.xthreat import get_default_xt_model
 
+pd.set_option('display.width', 1000)
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
+
 
 @pytest.fixture(scope="module")
 def statsbomb_loader():
@@ -40,23 +44,18 @@ def goals(events: pd.DataFrame):
         ]
 
 
-class TestCalculateActionValues:
+def specific_possession(events: pd.DataFrame, possession_number: int = 11):
+    possession_events = events[events['possession'] == possession_number]
+    possession_events = possession_events[possession_events['team_name'] == possession_events['possession_team_name']]
+    return possession_events
+
+
+class TestCalculateXGValues:
 
     def test_goal_value_is_one(self, sample_game, xt_model):
         game, events = sample_game
 
         goals_df = goals(events)
-        print(goals_df)
-        assert len(goals_df) == 3, "2:1 final score expected in sample data"
-
-        for _, goal in goals_df.iterrows():
-            assert calculate_xg_value(goal) == 1.0, "Goal action should have value 1.0"
-
-    def test_goal_value_is_one_for_actions(self, sample_game, xt_model):
-        game, events = sample_game
-
-        goals_df = goals(events)
-        actions = spadl.statsbomb.convert_to_actions(events, home_team_id=game['home_team_id'], xy_fidelity_version=2)
         print(goals_df)
         assert len(goals_df) == 3, "2:1 final score expected in sample data"
 
@@ -80,16 +79,70 @@ class TestCalculateActionValues:
 
     def test_passes_values(self, sample_game, xt_model):
         game, events = sample_game
-        pd.set_option('display.width', 1000)
-        pd.set_option('display.max_rows', None)
-        pd.set_option('display.max_columns', None)
+
+        passes_df = events[events['type_name'] == 'Pass']
+        first_passes = passes_df.head(5)
+        for _, event_pass in first_passes.iterrows():
+            assert calculate_xg_value(event_pass) == 0.0, "Pass action should have value 0.0"
+
+
+class TestCalculateXTValues:
+
+    def test_xavi_simons_goal_value(self, sample_game, xt_model):
+        game, events = sample_game
+
+        possession_with_goal = specific_possession(events, possession_number=11)
+
+        actions = spadl.statsbomb.convert_to_actions(possession_with_goal, home_team_id=game['home_team_id'], xy_fidelity_version=2)
+
+        rates = calculate_xt_values(actions, xt_model)
+
+        assert sum(rates) == 0.00814035, "Goal from Xavi Simons xt value mismatch"
+
+
+    def test_fake_action(self, xt_model):
+        data = {
+            # 'game_id': [3942819],
+            # 'original_event_id': ['9448d9e0-19ae-4d91-a6fb-1fc12a0c11ec'],
+            # 'period_id': [1],
+            # 'time_seconds': [371.288],
+            # 'team_id': [941],
+            # 'player_id': [37274.0],
+            'start_x': [8.00625],
+            'start_y': [24.6925],
+            'end_x': [104.95625],
+            'end_y': [36.2525],
+            'type_id': [0],  # Pass
+            'result_id': [1],  # Complete
+            # 'bodypart_id': [2],
+            # 'action_id': [0]
+        }
+        actions = pd.DataFrame(data)
+
+        rates = calculate_xt_values(actions, xt_model)
+
+        assert sum(rates) == 0.24857372, "Pass from goalkeeper to forward on the edge of the box xt value mismatch"
+
+    def test_hary_kane_goal_value(self, sample_game, xt_model):
+        game, events = sample_game
+
+        possession_with_goal = specific_possession(events, possession_number=19)
+
+        actions = spadl.statsbomb.convert_to_actions(possession_with_goal, home_team_id=game['home_team_id'], xy_fidelity_version=2)
+
+        rates = calculate_xt_values(actions, xt_model)
+
+        assert sum(rates) == 0.0, "Penalty shot xt value should be 0.0"
+
+    def test_passes_values(self, sample_game, xt_model):
+        game, events = sample_game
 
         passes_df = events[events['type_name'] == 'Pass']
         first_pass = passes_df.head(1)
         actions = spadl.statsbomb.convert_to_actions(first_pass, home_team_id=game['home_team_id'], xy_fidelity_version=2)
 
         rates = calculate_xt_values(actions, xt_model)
-        assert len(rates) == len(actions) , "xT rate shape mismatch"
+        assert len(rates) == len(actions), "xT rate shape mismatch"
         assert rates[0] == pytest.approx(0.01821798, abs=1e-4), "Pass xT value mismatch"
 
 
