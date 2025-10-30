@@ -1,20 +1,25 @@
 """Module for calculating action values based on xG, goals, and xT."""
+from typing import Any
 
 import pandas as pd
 import numpy as np
 import socceraction.spadl as spadl
+from numpy import ndarray, dtype, floating
+from numpy._typing import _64Bit
+from socceraction.spadl import SPADLSchema
 from socceraction.xthreat import ExpectedThreat
 from src.xthreat import get_default_xt_model
 
-def calculate_post_event_value(action: pd.Series) -> float:
-    if action['type_name'] != 'Shot':
+def calculate_xg_value(event: pd.Series) -> float:
+    if event['type_name'] != 'Shot':
         return 0.0
-    shot_data = action['extra']['shot']
+    shot_data = event['extra']['shot']
     if shot_data['outcome']['name'] == 'Goal':
         return 1.0
     return shot_data['statsbomb_xg']
 
-
+def calculate_xt_values(actions: pd.DataFrame, xt_model: ExpectedThreat) -> ndarray[Any, dtype[floating[_64Bit]]]:
+    return xt_model.rate(actions)
 
 
 def extract_label_from_last_action(actions_df: pd.DataFrame) -> np.ndarray:
