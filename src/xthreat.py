@@ -2,7 +2,6 @@
 
 import os
 import pickle
-from typing import Optional
 
 import pandas as pd
 import socceraction.spadl as spadl
@@ -90,13 +89,13 @@ def get_xt_model(filepath, loader, season_id, competition_id, l=16, w=12):
     return model
 
 
-def calculate_xt_values(actions_df: pd.DataFrame, xt_model: Optional[ExpectedThreat] = None) -> pd.Series:
+def calculate_xt_values(actions_df: pd.DataFrame, xt_model: ExpectedThreat = None) -> pd.Series:
     """
     Calculate Expected Threat values for actions.
 
     Args:
         actions_df: DataFrame with SPADL actions
-        xt_model: Optional pre-trained xT model. If None, uses default model.
+        xt_model: Pre-trained xT model. If None, uses default model.
 
     Returns:
         pd.Series: xT values for each action
@@ -107,7 +106,7 @@ def calculate_xt_values(actions_df: pd.DataFrame, xt_model: Optional[ExpectedThr
     return xt_model.rate(actions_df)
 
 
-def calculate_delta_xt(actions_df: pd.DataFrame, xt_model: Optional[ExpectedThreat] = None) -> pd.Series:
+def calculate_delta_xt(actions_df: pd.DataFrame, xt_model: ExpectedThreat = None) -> pd.Series:
     """
     Calculate delta xT (change in Expected Threat) for each action.
 
@@ -117,7 +116,7 @@ def calculate_delta_xt(actions_df: pd.DataFrame, xt_model: Optional[ExpectedThre
 
     Args:
         actions_df: DataFrame with SPADL actions
-        xt_model: Optional pre-trained xT model. If None, uses default model.
+        xt_model: Pre-trained xT model. If None, uses default model.
 
     Returns:
         pd.Series: Delta xT values for each action
