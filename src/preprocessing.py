@@ -297,11 +297,9 @@ class SequencePreprocessor:
         all_y = []
 
         for match, events_df in matches:
-            X_match, y_match = self.process_match(match.get('game_id'), match.get('home_team_id'), events_df)
-
-            if len(X_match) > 0:
-                all_X.append(X_match)
-                all_y.append(y_match)
+            X_match, y_match = self.process_match(match['game_id'], match['home_team_id'], events_df)
+            all_X.append(X_match)
+            all_y.append(y_match)
 
         X = np.concatenate(all_X) if all_X else np.array([])
         y = np.concatenate(all_y) if all_y else np.array([])
