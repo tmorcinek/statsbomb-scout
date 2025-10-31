@@ -149,41 +149,52 @@ def example_with_dummy_data():
 
 def load_statsbomb_data_example():
     """
-    Example of how to load real StatsBomb data.
-    Uncomment and adapt when you have real data.
+    Example of how to load real StatsBomb data from UEFA Euro 2024.
+    Uses competition_id=55, season_id=282 (UEFA Euro 2024).
     """
     print("\nExample: Loading StatsBomb data with full pipeline")
     print("-" * 40)
 
     # Using our data loader with socceraction
-    # from src.data_loader import load_statsbomb_socceraction_data
-    # from src.data_splitter import split_matches
-    # from src.preprocessing import SequencePreprocessor
-    #
-    # # Load data (competition_id=55, season_id=282 is Women's World Cup 2019)
-    # matches_gen = load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282)
-    #
-    # # Split into train/val/test
-    # train_matches, val_matches, test_matches = split_matches(matches_gen)
-    #
-    # # Preprocess into sequences
-    # preprocessor = SequencePreprocessor(sequence_length=10)
-    # X_train, y_train = preprocessor.process_matches(train_matches)
-    # X_val, y_val = preprocessor.process_matches(val_matches)
-    # X_test, y_test = preprocessor.process_matches(test_matches)
-    #
-    # print(f"Training: {X_train.shape}")
-    # print(f"Validation: {X_val.shape}")
-    # print(f"Test: {X_test.shape}")
+    print("\n1. Loading UEFA Euro 2024 data...")
+    matches_gen = load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282)
 
-    print("(Uncomment the code above to load real data)")
+    # Split into train/val/test
+    print("2. Splitting matches into train/val/test sets...")
+    train_matches, val_matches, test_matches = split_matches(matches_gen)
+
+    # Preprocess into sequences
+    print("3. Preprocessing matches into sequences...")
+    preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH)
+    X_train, y_train = preprocessor.process_matches(train_matches)
+    X_val, y_val = preprocessor.process_matches(val_matches)
+    X_test, y_test = preprocessor.process_matches(test_matches)
+
+    print(f"\n4. Data shapes:")
+    print(f"   Training: {X_train.shape}, labels: {y_train.shape}")
+    print(f"   Validation: {X_val.shape}, labels: {y_val.shape}")
+    print(f"   Test: {X_test.shape}, labels: {y_test.shape}")
+
+    print(f"\n5. Summary statistics:")
+    print(f"   Total sequences: {len(X_train) + len(X_val) + len(X_test)}")
+    print(f"   Features per event: {X_train.shape[2]}")
+    print(f"   Sequence length: {X_train.shape[1]}")
+    print(f"   Target value range: [{y_train.min():.4f}, {y_train.max():.4f}]")
+
+    return X_train, y_train, X_val, y_val, X_test, y_test
 
 
 if __name__ == "__main__":
     # Run the example with dummy data
     example_with_dummy_data()
 
-    # Show how to load real data
+    # Load and process real UEFA Euro 2024 data
     print("\n\n")
-    load_statsbomb_data_example()
+    print("=" * 60)
+    print("LOADING REAL UEFA EURO 2024 DATA")
+    print("=" * 60)
+    X_train, y_train, X_val, y_val, X_test, y_test = load_statsbomb_data_example()
+    print("\n" + "=" * 60)
+    print("Real data loaded successfully!")
+    print("=" * 60)
 

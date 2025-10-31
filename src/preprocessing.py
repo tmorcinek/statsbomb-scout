@@ -297,7 +297,7 @@ class SequencePreprocessor:
         all_y = []
 
         for match, events_df in matches:
-            X_match, y_match = self.process_match(match['match_id'], match['home_team_id'], events_df)
+            X_match, y_match = self.process_match(match.get('game_id'), match.get('home_team_id'), events_df)
 
             if len(X_match) > 0:
                 all_X.append(X_match)
