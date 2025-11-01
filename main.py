@@ -2,16 +2,13 @@
 
 import config
 import pandas as pd
+from pathlib import Path
 
-from src.data_loader import load_statsbomb_data, get_home_team_id, load_statsbomb_socceraction_data
+from src.data_loader import load_statsbomb_socceraction_data
 from src.data_splitter import split_matches
 from src.preprocessing import SequencePreprocessor
 from src.model import create_model
 from src.train import ModelTrainer
-import inspect
-from socceraction.data import statsbomb
-import socceraction.spadl as spadl
-
 from src.xthreat import get_default_xt_model
 
 
@@ -23,7 +20,6 @@ def main():
 
     # 1a. Load data
     print("\n1a. Loading data...")
-    # data = load_statsbomb_data( 55, 282)
     data = load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282)
 
     # 1b. Splitting data
@@ -31,58 +27,50 @@ def main():
     train_matches, val_matches, test_matches = split_matches(data)
 
     # 2. Preprocess data
+    print("\n2. Preprocessing data...")
     preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH, xt_model=get_default_xt_model())
     X_train, y_train = preprocessor.process_matches(train_matches)
     X_val, y_val = preprocessor.process_matches(val_matches)
     X_test, y_test = preprocessor.process_matches(test_matches)
 
+    print(f"Train set: {X_train.shape[0]} sequences")
+    print(f"Val set: {X_val.shape[0]} sequences")
+    print(f"Test set: {X_test.shape[0]} sequences")
+
     # 3. Build model
     print(f"\n3. Building {config.MODEL_TYPE.upper()} model...")
-    # TODO: Get input shape from data
-    # input_shape = (config.SEQUENCE_LENGTH, X.shape[2])
-    # model = create_model(
-    #     model_type=config.MODEL_TYPE,
-    #     input_shape=input_shape,
-    #     lstm_units=config.LSTM_UNITS,
-    #     dropout=config.LSTM_DROPOUT
-    # )
-    # model.summary()
+    input_shape = (config.SEQUENCE_LENGTH, X_train.shape[2])
+    model = create_model(
+        model_type=config.MODEL_TYPE,
+        input_shape=input_shape,
+        lstm_units=config.LSTM_UNITS,
+        lstm_dropout=config.LSTM_DROPOUT
+    )
+    model.summary()
 
     # 4. Train model
     print("\n4. Training model...")
-    # trainer = ModelTrainer(model)
-    # history = trainer.train(
-    #     X_train, y_train,
-    #     X_val, y_val,
-    #     batch_size=config.BATCH_SIZE,
-    #     epochs=config.EPOCHS
-    # )
+    trainer = ModelTrainer(model)
+    history = trainer.train(
+        X_train, y_train,
+        X_val, y_val,
+        batch_size=config.BATCH_SIZE,
+        epochs=config.EPOCHS
+    )
 
     # 5. Evaluate model
     print("\n5. Evaluating model...")
-    # metrics = trainer.evaluate(X_test, y_test)
+    metrics = trainer.evaluate(X_test, y_test)
 
     # 6. Save results
     print("\n6. Saving results...")
-    # trainer.plot_training_history(save_path="models/training_history.png")
-    # trainer.save_model("final_model.h5")
-    # trainer.save_training_metrics(metrics)
+    trainer.plot_training_history(save_path=Path("models/training_history.png"))
+    trainer.save_training_metrics(metrics)
 
     print("\n" + "=" * 50)
     print("Pipeline completed successfully!")
+    print(f"Best model saved as: models/best_model.h5")
     print("=" * 50)
-
-def single_match_pipeline():
-    # Load events for the match
-    # match, events = next(load_statsbomb_data(55, 282))
-    match, events = next(load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282))
-
-    # match, events = next(load_statsbomb_data(55, 282))
-    # Preprocess data
-    preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH, xt_model=get_default_xt_model())
-    process_match = preprocessor.process_match(match['game_id'], match["home_team_id"], events)
-
-    print(len(process_match))
 
 
 if __name__ == "__main__":
@@ -90,5 +78,4 @@ if __name__ == "__main__":
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
 
-    # main()
-    single_match_pipeline()
+    main()

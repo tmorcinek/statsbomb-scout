@@ -31,10 +31,10 @@ data/processed/*.pkl
 data/processed/*.npy
 
 # Model files
-models/*.h5
+#models/*.h5
 models/*.keras
 models/*.pb
-models/training_history.png
+#models/training_history.png
 
 # Jupyter Notebook
 .ipynb_checkpoints
