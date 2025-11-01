@@ -40,12 +40,28 @@ def main():
     # 3. Build model
     print(f"\n3. Building {config.MODEL_TYPE.upper()} model...")
     input_shape = (config.SEQUENCE_LENGTH, X_train.shape[2])
-    model = create_model(
-        model_type=config.MODEL_TYPE,
-        input_shape=input_shape,
-        lstm_units=config.LSTM_UNITS,
-        lstm_dropout=config.LSTM_DROPOUT
-    )
+
+    # Use appropriate parameters based on model type
+    if config.MODEL_TYPE == 'lstm':
+        model = create_model(
+            model_type='lstm',
+            input_shape=input_shape,
+            lstm_units=config.LSTM_UNITS,
+            lstm_dropout=config.LSTM_DROPOUT
+        )
+    elif config.MODEL_TYPE == 'transformer':
+        model = create_model(
+            model_type='transformer',
+            input_shape=input_shape,
+            num_heads=config.TRANSFORMER_HEADS,
+            d_model=config.TRANSFORMER_DIM,
+            ff_dim=config.TRANSFORMER_FF_DIM,
+            num_blocks=config.TRANSFORMER_BLOCKS,
+            dropout=config.LSTM_DROPOUT
+        )
+    else:
+        raise ValueError(f"Unknown MODEL_TYPE: {config.MODEL_TYPE}. Use 'lstm' or 'transformer'")
+
     model.summary()
 
     # 4. Train model
