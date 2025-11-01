@@ -23,8 +23,7 @@ statsbomb-scout/
 │   └── processed/        # Przetworzone dane
 ├── docs/                 # Dokumentacja
 │   ├── QUICKSTART.md
-│   ├── NEXT_STEPS.md
-│   └── ENVIRONMENT_SETUP.md
+│   └── NEXT_STEPS.md
 ├── models/               # Zapisane modele i wykresy (patrz models/README.md)
 ├── src/
 │   ├── __init__.py
@@ -63,6 +62,11 @@ pip install -r requirements.txt
 ```
 
 ## 📊 Użycie
+**Uwaga**: W przypadku konfliktu zależności z `multimethod`:
+```bash
+pip install "multimethod==1.9.1"
+```
+
 
 ### 1. Przygotowanie danych
 Umieść pliki z danymi StatsBomb w katalogu `data/raw/`:
@@ -142,22 +146,7 @@ Input → Embedding → Positional Encoding → TransformerEncoder × N →
 GlobalPooling → Dense(64) → Dense(1)
 ```
 
-## 📝 TODO - Miejsca do Uzupełnienia
 
-W kodzie znajdują się komentarze `# TODO:` w następujących miejscach:
-
-1. **data_loader.py**: 
-   - Parsowanie struktury JSON StatsBomb
-   - Implementacja logiki dla wielu meczów
-
-2. **preprocessing.py**:
-   - Ekstrakcja faz posiadania piłki
-   - Implementacja funkcji `create_features()`
-   - Logika tworzenia etykiet (xG)
-
-3. **main.py**:
-   - Podanie ścieżki do plików danych
-   - Odkomentowanie pipeline po przygotowaniu danych
 
 ## 📚 Wymagania
 
