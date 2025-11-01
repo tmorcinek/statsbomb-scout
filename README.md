@@ -21,6 +21,10 @@ statsbomb-scout/
 ├── data/
 │   ├── raw/              # Surowe dane JSON/CSV
 │   └── processed/        # Przetworzone dane
+├── docs/                 # Dokumentacja
+│   ├── QUICKSTART.md
+│   ├── NEXT_STEPS.md
+│   └── ENVIRONMENT_SETUP.md
 ├── models/               # Zapisane modele i wykresy
 ├── src/
 │   ├── __init__.py
@@ -28,6 +32,10 @@ statsbomb-scout/
 │   ├── preprocessing.py  # Przetwarzanie na sekwencje
 │   ├── model.py          # Architektura LSTM/Transformer
 │   └── train.py          # Trenowanie i ewaluacja
+├── tests/                # Testy jednostkowe
+│   ├── test_preprocessing.py
+│   ├── test_xthreat.py
+│   └── test_action_valuation.py
 ├── config.py             # Konfiguracja hiperparametrów
 ├── main.py               # Główny skrypt pipeline
 ├── requirements.txt      # Zależności
