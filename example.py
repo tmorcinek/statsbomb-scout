@@ -134,7 +134,9 @@ def example_with_dummy_data():
 
     # 7. Save results
     print("\n7. Saving results...")
-    trainer.save_model("example_model.h5")
+    # Note: best_model.h5 is already saved by ModelCheckpoint during training
+    # You can optionally save the final model with a custom name:
+    # trainer.save_model("example_final_model.h5")
     trainer.save_training_metrics(metrics, "example_metrics.json")
 
     print("\n" + "=" * 60)

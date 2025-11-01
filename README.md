@@ -25,7 +25,7 @@ statsbomb-scout/
 │   ├── QUICKSTART.md
 │   ├── NEXT_STEPS.md
 │   └── ENVIRONMENT_SETUP.md
-├── models/               # Zapisane modele i wykresy
+├── models/               # Zapisane modele i wykresy (patrz models/README.md)
 ├── src/
 │   ├── __init__.py
 │   ├── data_loader.py    # Wczytywanie danych StatsBomb
@@ -82,6 +82,13 @@ MODEL_TYPE = 'lstm'       # 'lstm' lub 'transformer'
 ```bash
 python main.py
 ```
+
+### 4. Zapisywane modele
+Podczas treningu model automatycznie zapisuje się do folderu `models/`:
+- **best_model.h5** - najlepszy model (najniższa `val_loss`) automatycznie zapisywany przez `ModelCheckpoint`
+- Model końcowy można zapisać ręcznie używając `trainer.save_model("nazwa.h5")`
+
+**Uwaga**: Pliki `.h5` są ignorowane przez Git (patrz `.gitignore`), więc nie będą commitowane do repozytorium.
 
 ## 🔧 Moduły
 

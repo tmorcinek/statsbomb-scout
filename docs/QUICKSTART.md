@@ -210,10 +210,13 @@ pip install --upgrade tensorflow
 # Zobacz strukturę plików
 ls -R src/
 
-# Sprawdź rozmiar modelu
-ls -lh models/*.h5
+# Sprawdź zapisane modele
+ls -lh models/
 
-# Usuń stare modele
+# Uwaga: best_model.h5 to najlepszy model z treningu
+# (automatycznie zapisywany przez ModelCheckpoint callback)
+
+# Jeśli chcesz usunąć wszystkie wytrenowane modele:
 rm models/*.h5
 
 # Eksportuj environment
