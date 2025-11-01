@@ -33,7 +33,7 @@ class LSTMSequenceModel:
         """
         inputs = layers.Input(shape=self.input_shape)
 
-        # TODO: Add LSTM layers
+        # LSTM layers
         x = layers.LSTM(self.lstm_units, return_sequences=True)(inputs)
         x = layers.Dropout(self.dropout)(x)
         x = layers.LSTM(self.lstm_units // 2)(x)
@@ -116,7 +116,6 @@ class TransformerSequenceModel:
         """
         inputs = layers.Input(shape=self.input_shape)
 
-        # TODO: Add positional encoding
         # Project to d_model dimensions
         x = layers.Dense(self.d_model)(inputs)
 
@@ -179,4 +178,3 @@ def create_model(model_type: str, input_shape: tuple, **kwargs) -> keras.Model:
     model_builder.compile()
 
     return model
-
