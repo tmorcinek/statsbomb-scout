@@ -12,11 +12,6 @@ LEARNING_RATE = 0.001
 VALIDATION_SPLIT = 0.2
 TEST_SPLIT = 0.1
 
-# Feature engineering
-FEATURE_COLUMNS = ['x_start', 'y_start', 'x_end', 'y_end',
-                   'action_type', 'pass_length', 'pass_angle',
-                   'time_delta', 'under_pressure']
-
 # Model type: 'lstm' or 'transformer'
 MODEL_TYPE = 'lstm'
 
