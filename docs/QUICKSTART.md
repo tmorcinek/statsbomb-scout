@@ -2,7 +2,7 @@
 
 ## 🚀 Szybki Start (5 minut)
 
-### 1. Instalacja środowiska
+### 1. Aktywacja środowiska
 
 ```bash
 # Aktywuj środowisko wirtualne
@@ -10,25 +10,17 @@ source .venv/bin/activate  # macOS/Linux
 # lub
 .venv\Scripts\activate  # Windows
 
-# Zainstaluj dodatkowe pakiety (jeśli jeszcze nie zainstalowane)
-pip install jupyter seaborn
+# Sprawdź czy wszystkie pakiety są zainstalowane
+pip install -r requirements.txt
 ```
 
-### 2. Uruchom przykład z dummy danymi
+### 2. Uruchom główny pipeline
 
 ```bash
-python example.py
+python main.py
 ```
 
-To pokaże Ci jak działa cały pipeline z syntetycznymi danymi.
-
-### 3. Otwórz Jupyter Notebook
-
-```bash
-jupyter notebook analysis.ipynb
-```
-
-Notebook pozwala na interaktywną eksplorację i eksperymenty.
+To uruchomi pełny pipeline treningu na danych StatsBomb.
 
 ---
 
@@ -37,44 +29,51 @@ Notebook pozwala na interaktywną eksplorację i eksperymenty.
 ```
 statsbomb-scout/
 ├── config.py              # Wszystkie parametry w jednym miejscu
-├── main.py                # Główny pipeline
-├── example.py             # Demonstracja z dummy danymi
-├── analysis.ipynb         # Jupyter notebook do eksperymentów
+├── main.py                # Główny pipeline treningu
+├── requirements.txt       # Zależności Python
 │
 ├── src/                   # Moduły projektu
 │   ├── data_loader.py     # Wczytywanie danych StatsBomb
 │   ├── preprocessing.py   # Przetwarzanie na sekwencje
 │   ├── model.py           # Architektury LSTM/Transformer
-│   └── train.py           # Trenowanie i ewaluacja
+│   ├── train.py           # Trenowanie i ewaluacja
+│   └── xthreat.py         # Expected Threat (xT) model
 │
-├── data/
-│   ├── raw/              # Tutaj umieść pliki JSON/CSV
-│   └── processed/        # Przetworzone dane
+├── data/                  # Dane
+│   ├── raw/               # Surowe dane
+│   ├── processed/         # Przetworzone dane
+│   └── statsbomb/         # Dane StatsBomb Open Data
 │
-└── models/               # Zapisane modele
+├── models/                # Zapisane modele
+│   ├── best_model.h5      # Najlepszy model (auto-zapisywany)
+│   └── xt_models/         # Modele xT (cachowane)
+│
+├── tests/                 # Testy jednostkowe
+└── docs/                  # Dokumentacja
 ```
 
 ---
 
 ## 🎯 Twój Pierwszy Model (Krok po kroku)
 
-### Krok 1: Pobierz dane StatsBomb
+### Krok 1: Sprawdź dane StatsBomb
+
+Projekt zawiera już dane StatsBomb Open Data w folderze `data/statsbomb/`:
+- **Konkurencja 55** (UEFA Euro)
+- **Sezon 282** (UEFA Euro 2020)
+- Około 51 meczów z pełnymi danymi event-level
+
+Możesz też pobrać dodatkowe dane:
 
 ```python
 from statsbombpy import sb
 
 # Zobacz dostępne konkurencje
 competitions = sb.competitions()
-print(competitions)
+print(competitions[['competition_name', 'season_name']])
 
-# Pobierz mecze (przykład: La Liga 2020/21)
-matches = sb.matches(competition_id=11, season_id=90)
-
-# Pobierz wydarzenia z pierwszego meczu
-events = sb.events(match_id=matches.iloc[0]['match_id'])
-
-# Zapisz do pliku
-events.to_csv('data/raw/events.csv', index=False)
+# Pobierz mecze z innej ligi
+matches = sb.matches(competition_id=11, season_id=90)  # La Liga 2020/21
 ```
 
 ### Krok 2: Dostosuj konfigurację
@@ -88,22 +87,18 @@ BATCH_SIZE = 32
 EPOCHS = 50
 ```
 
-### Krok 3: Uzupełnij preprocessing
+### Krok 3: Uruchom główny pipeline
 
-Otwórz `src/preprocessing.py` i uzupełnij funkcje oznaczone `# TODO:`
-
-**Najważniejsze:**
-- `extract_possessions()` - wyciągnij fazy posiadania
-- `create_features()` - stwórz cechy dla każdej akcji
-- `create_labels()` - przypisz wartość xG do sekwencji
-
-### Krok 4: Uruchom główny pipeline
-
-```python
+```bash
 python main.py
 ```
 
-Odkomentuj odpowiednie sekcje w `main.py` po przygotowaniu danych.
+Pipeline automatycznie:
+- Załaduje dane StatsBomb
+- Podzieli na train/val/test
+- Przeprocesuje sekwencje
+- Wytrenuje model
+- Zapisze najlepszy model jako `models/best_model.h5`
 
 ---
 
@@ -264,10 +259,10 @@ for seq_len in [5, 10, 15, 20]:
 ## 🎓 Następne Kroki
 
 1. **Przeczytaj:** `NEXT_STEPS.md` - szczegółowy przewodnik implementacji
-2. **Eksperymentuj:** Użyj `analysis.ipynb` do testowania
+2. **Eksperymentuj:** Modyfikuj parametry w `config.py`
 3. **Dostosuj:** Zmodyfikuj preprocessing pod swoje potrzeby
-4. **Skaluj:** Użyj wszystkich dostępnych meczów
-5. **Analizuj:** Stwórz rankingi zawodników
+4. **Skaluj:** Użyj wszystkich dostępnych meczów/lig
+5. **Analizuj:** Stwórz rankingi zawodników na podstawie predykcji modelu
 
 ---
 
