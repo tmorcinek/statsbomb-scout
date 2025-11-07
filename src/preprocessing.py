@@ -255,23 +255,23 @@ class SequencePreprocessor:
 
         for possession in possessions:
             features = self._extract_features(possession, home_team_id)
-            print(f"  → Possession {possession['possession'].iloc[0]}: {len(features)} actions")
+            # print(f"  → Possession {possession['possession'].iloc[0]}: {len(features)} actions")
             if len(features) < self.sequence_length:
-                print(f"  → Possession too short, consist of only {len(features)} actions")
+                # print(f"  → Possession too short, consist of only {len(features)} actions")
                 continue
 
             normalized_features = self._normalize_features(features)
-            print(f"  →  Normalized features shape: {normalized_features.shape}")
+            # print(f"  →  Normalized features shape: {normalized_features.shape}")
 
             sequence = self._create_simple_sequence(normalized_features)
-            print(f"  →  Created sequence shape: {sequence.shape}")
+            # print(f"  →  Created sequence shape: {sequence.shape}")
 
             labels = self._create_label(features.tail(self.sequence_length))
-            print(f"  →  Created label: {labels}")
+            # print(f"  →  Created label: {labels}")
 
             all_sequences.append(sequence)
             all_labels.append(labels)
-            print(f"Added sequence {sequence.shape}, label {labels}")
+            # print(f"Added sequence {sequence.shape}, label {labels}")
 
         X = np.concatenate(all_sequences) if all_sequences else np.array([]).reshape(0, self.sequence_length, 0)
         y = np.concatenate(all_labels) if all_labels else np.array([])
