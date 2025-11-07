@@ -161,9 +161,13 @@ Dla każdej akcji w sekwencji:
 
 ## 🎯 Output (Etykieta)
 
-Wartość sekwencji:
-- **xG strzału** jeśli sekwencja kończy się strzałem
-- **xThreat** wartość zagrożenia dla innych akcji
+Wartość sekwencji obliczana jako **maksimum z sumy xG i sumy xT** ostatnich akcji:
+- **xG = 1.0** dla gola
+- **xG = statsbomb_xg** dla nieudanych strzałów
+- **xG = 0.0** dla akcji niebędących strzałem
+- **xT** (Expected Threat) dla każdej akcji na podstawie modelu xThreat
+
+Etykieta: `max(sum(xG), sum(xT))` z ostatnich `SEQUENCE_LENGTH` akcji posiadania
 
 ## 🧠 Architektury Modeli
 
