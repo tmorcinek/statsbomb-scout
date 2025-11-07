@@ -7,10 +7,12 @@ Model oceny zawodników piłkarskich na podstawie sekwencji akcji z danych Stats
 Projekt implementuje pipeline machine learning do oceny zawodników piłkarskich poprzez analizę sekwencji akcji (podań, prowadzeń, odbiorów, strzałów). Model przewiduje wartość sekwencji akcji na podstawie expected goals (xG).
 
 ### Główne Funkcjonalności:
-- Wczytywanie danych zdarzeń meczowych ze StatsBomb (JSON/CSV)
+- Wczytywanie danych zdarzeń meczowych ze StatsBomb (format SPADL)
 - Ekstrakcja faz posiadania piłki
 - Generowanie sekwencji akcji o ustalonej długości
 - Ekstrakcja cech dla każdej akcji (współrzędne, typ, długość/kąt podania, czas, presja)
+- Wycena akcji za pomocą xG i xThreat
+- Podział meczów na zbiory treningowy/walidacyjny/testowy
 - Trenowanie modeli sekwencyjnych (LSTM lub Transformer)
 - Ewaluacja i analiza wyników
 
@@ -29,12 +31,16 @@ statsbomb-scout/
 │   ├── __init__.py
 │   ├── data_loader.py    # Wczytywanie danych StatsBomb
 │   ├── preprocessing.py  # Przetwarzanie na sekwencje
+│   ├── data_splitter.py  # Podział meczów na train/val/test
+│   ├── xthreat.py        # Modele xThreat
+│   ├── action_valuation.py  # Wycena akcji
 │   ├── model.py          # Architektura LSTM/Transformer
 │   └── train.py          # Trenowanie i ewaluacja
 ├── tests/                # Testy jednostkowe
 │   ├── test_preprocessing.py
 │   ├── test_xthreat.py
 │   └── test_action_valuation.py
+├── statsbombpy/          # Lokalna kopia biblioteki statsbombpy
 ├── config.py             # Konfiguracja hiperparametrów
 ├── main.py               # Główny skrypt pipeline
 ├── requirements.txt      # Zależności
@@ -62,24 +68,37 @@ pip install -r requirements.txt
 ```
 
 ## 📊 Użycie
-**Uwaga**: W przypadku konfliktu zależności z `multimethod`:
-```bash
-pip install "multimethod==1.9.1"
-```
-
 
 ### 1. Przygotowanie danych
-Umieść pliki z danymi StatsBomb w katalogu `data/raw/`:
-- Format JSON (zalecany): `events.json`
-- Format CSV: `events.csv`
+Dane StatsBomb są już dostępne w folderze `data/statsbomb/data/`:
+- Zawiera pliki JSON z danymi: `competitions.json`, `matches/`, `events/`, `lineups/`
+- Pipeline automatycznie wczytuje dane przy użyciu `load_statsbomb_socceraction_data()`
 
 ### 2. Konfiguracja
 Edytuj `config.py` aby dostosować parametry:
 ```python
+# Model type: 'lstm' or 'transformer'
+MODEL_TYPE = 'lstm'
+
+# Data splits
 SEQUENCE_LENGTH = 10      # Długość sekwencji akcji
+VALIDATION_SPLIT = 0.2    # 20% danych na walidację
+TEST_SPLIT = 0.1          # 10% danych na test
+
+# Training parameters
 BATCH_SIZE = 32           # Rozmiar batcha
 EPOCHS = 50               # Liczba epok trenowania
-MODEL_TYPE = 'lstm'       # 'lstm' lub 'transformer'
+LEARNING_RATE = 0.001     # Learning rate
+
+# LSTM parameters
+LSTM_UNITS = 128          # Liczba jednostek LSTM
+LSTM_DROPOUT = 0.2        # Dropout rate
+
+# Transformer parameters
+TRANSFORMER_HEADS = 4     # Liczba głów attention
+TRANSFORMER_DIM = 128     # Wymiar modelu
+TRANSFORMER_FF_DIM = 512  # Wymiar feedforward
+TRANSFORMER_BLOCKS = 2    # Liczba bloków transformera
 ```
 
 ### 3. Uruchomienie pipeline
@@ -88,24 +107,37 @@ python main.py
 ```
 
 ### 4. Zapisywane modele
-Podczas treningu model automatycznie zapisuje się do folderu `models/`:
-- **best_model.h5** - najlepszy model (najniższa `val_loss`) automatycznie zapisywany przez `ModelCheckpoint`
-- Model końcowy można zapisać ręcznie używając `trainer.save_model("nazwa.h5")`
+Podczas treningu model automatycznie zapisuje wyniki do folderu `models/`:
+- **models/lstm/** lub **models/transformer/** - folder w zależności od typu modelu
+  - **best_model.h5** - najlepszy model (najniższa `val_loss`) zapisywany przez `ModelCheckpoint`
+  - **metrics.json** - metryki ewaluacji (test_loss, test_mae, rmse)
+  - **training_history.png** - wykres historii treningu
 
 **Uwaga**: Pliki `.h5` są ignorowane przez Git (patrz `.gitignore`), więc nie będą commitowane do repozytorium.
 
 ## 🔧 Moduły
 
 ### data_loader.py
-- `StatsBombDataLoader`: Klasa do wczytywania danych z JSON/CSV
-- Metody: `load_from_json()`, `load_from_csv()`, `filter_relevant_events()`
+- `load_statsbomb_socceraction_data()`: Funkcja do wczytywania danych StatsBomb i konwersji do formatu SPADL
+- Wczytuje dane z lokalnego folderu `data/statsbomb/data/`
+
+### data_splitter.py
+- `split_matches()`: Funkcja do podziału meczów na zbiory treningowy, walidacyjny i testowy
+- Zapewnia, że każdy mecz znajduje się tylko w jednym zbiorze
 
 ### preprocessing.py
 - `SequencePreprocessor`: Przetwarzanie zdarzeń na sekwencje
 - Ekstrakcja posiadań piłki
 - Generowanie cech: współrzędne, typ akcji, metryki podań, czas, presja
-- Tworzenie etykiet (xG)
-- Podział na zbiory: train/val/test
+- Tworzenie etykiet (xG lub xThreat)
+
+### xthreat.py
+- `get_default_xt_model()`: Funkcja zwracająca domyślny model xThreat
+- `xTModel`: Klasa modelu xThreat do wyceny zagrożenia
+
+### action_valuation.py
+- Funkcje do wyceny akcji piłkarskich
+- Integracja z modelami xThreat
 
 ### model.py
 - `LSTMSequenceModel`: Model LSTM z warstwami dropout
@@ -131,7 +163,7 @@ Dla każdej akcji w sekwencji:
 
 Wartość sekwencji:
 - **xG strzału** jeśli sekwencja kończy się strzałem
-- **0** jeśli brak strzału na końcu sekwencji
+- **xThreat** wartość zagrożenia dla innych akcji
 
 ## 🧠 Architektury Modeli
 
@@ -154,7 +186,8 @@ GlobalPooling → Dense(64) → Dense(1)
 - TensorFlow 2.10+
 - Pandas, NumPy, scikit-learn
 - matplotlib (do wizualizacji)
-- statsbombpy (opcjonalnie, do API)
+- socceraction (do przetwarzania danych SPADL)
+- statsbombpy (lokalna kopia w projekcie)
 
 ## 🔍 Analiza Wyników
 
