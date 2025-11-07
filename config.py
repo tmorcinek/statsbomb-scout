@@ -14,6 +14,7 @@ TEST_SPLIT = 0.1
 
 # Model type: 'lstm' or 'transformer'
 MODEL_TYPE = 'lstm'
+# MODEL_TYPE = 'transformer'
 
 # LSTM parameters
 LSTM_UNITS = 128

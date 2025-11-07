@@ -67,7 +67,7 @@ def main():
     # 4. Train model
     print("\n4. Training model...")
     trainer = ModelTrainer(model)
-    history = trainer.train(
+    trainer.train(
         X_train, y_train,
         X_val, y_val,
         batch_size=config.BATCH_SIZE,
@@ -80,8 +80,8 @@ def main():
 
     # 6. Save results
     print("\n6. Saving results...")
-    trainer.plot_training_history(save_path=Path("models/training_history.png"))
     trainer.save_training_metrics(metrics)
+    trainer.plot_training_history(filename="training_history.png")
 
     print("\n" + "=" * 50)
     print("Pipeline completed successfully!")

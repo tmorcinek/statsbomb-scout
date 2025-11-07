@@ -8,11 +8,13 @@ import json
 from typing import Dict, Tuple
 import matplotlib.pyplot as plt
 
+import config
+
 
 class ModelTrainer:
     """Handles model training, evaluation, and saving."""
 
-    def __init__(self, model: keras.Model, model_dir: Path = Path("models/")):
+    def __init__(self, model: keras.Model, model_dir: Path = Path(f"models/{config.MODEL_TYPE}/")):
         """
         Initialize trainer.
 
@@ -101,7 +103,7 @@ class ModelTrainer:
 
         return metrics
 
-    def plot_training_history(self, save_path: Path = None):
+    def plot_training_history(self, filename: str = None):
         """
         Plot training history.
 
@@ -134,20 +136,9 @@ class ModelTrainer:
 
         plt.tight_layout()
 
-        if save_path:
-            plt.savefig(save_path)
+        if filename:
+            plt.savefig(self.model_dir / filename)
         plt.show()
-
-    def save_model(self, filename: str = "final_model.h5"):
-        """
-        Save the trained model.
-
-        Args:
-            filename: Filename for saved model
-        """
-        save_path = self.model_dir / filename
-        self.model.save(str(save_path))
-        print(f"Model saved to {save_path}")
 
     def save_training_metrics(self, metrics: Dict, filename: str = "metrics.json"):
         """

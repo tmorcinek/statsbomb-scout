@@ -22,12 +22,6 @@ Podczas treningu (`ModelTrainer`), następujące pliki są automatycznie tworzon
 - Zawiera wagi modelu z **najniższą** `val_loss` podczas całego treningu
 - To jest model, którego powinieneś używać do predykcji!
 
-### **Ręczne zapisywanie**
-Możesz też zapisać model ręcznie:
-```python
-trainer.save_model("custom_name.h5")
-```
-
 ## 🚫 .gitignore
 
 **Ważne**: Wszystkie pliki `.h5`, `.keras`, `.pb` są ignorowane przez Git (patrz `.gitignore`).
