@@ -6,8 +6,8 @@ import pytest
 import socceraction.spadl as spadl
 from socceraction.data.statsbomb import StatsBombLoader
 
-from src.action_valuation import calculate_xg_values, calculate_xt_values
-from src.xthreat import get_default_xt_model
+from src.ml.action_valuation import calculate_xg_values, calculate_xt_values
+from src.ml.xthreat import get_default_xt_model
 
 pd.set_option('display.width', 1000)
 pd.set_option('display.max_rows', None)

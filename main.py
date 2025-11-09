@@ -3,12 +3,12 @@
 import config
 import pandas as pd
 
-from src.data_loader import load_statsbomb_socceraction_data
-from src.data_splitter import split_matches
-from src.preprocessing import SequencePreprocessor
-from src.model import create_model
-from src.train import ModelTrainer
-from src.xthreat import get_default_xt_model
+from src.ml.data_loader import load_statsbomb_socceraction_data
+from src.ml.data_splitter import split_matches
+from src.ml.preprocessing import SequencePreprocessor
+from src.ml.model import create_model
+from src.ml.train import ModelTrainer
+from src.ml.xthreat import get_default_xt_model
 
 
 def main():

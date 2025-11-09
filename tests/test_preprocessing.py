@@ -1,9 +1,9 @@
 """Test script to verify preprocessing flow."""
 
 import numpy as np
-from src.preprocessing import SequencePreprocessor
-from src.data_loader import load_statsbomb_socceraction_data
-from src.xthreat import get_default_xt_model
+from src.ml.preprocessing import SequencePreprocessor
+from src.ml.data_loader import load_statsbomb_socceraction_data
+from src.ml.xthreat import get_default_xt_model
 
 
 def test_preprocessing_flow():
@@ -96,7 +96,8 @@ def test_preprocessing_flow():
     assert X.shape[2] > 0, "Feature dimension must be > 0!"
     print("✅ All validations passed!")
 
-    return X, y
+    # Do not return values from tests (pytest warns if a test returns a value)
+    # The test assertions above are sufficient.
 
 if __name__ == "__main__":
     X, y = test_preprocessing_flow()

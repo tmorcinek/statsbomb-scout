@@ -2,7 +2,7 @@
 
 import numpy as np
 import os
-from src.xthreat import get_xt_model_for_competition, get_model_filename
+from src.ml.xthreat import get_xt_model_for_competition, get_model_filename
 from socceraction.xthreat import ExpectedThreat
 
 
@@ -137,4 +137,3 @@ if __name__ == "__main__":
         for name, result in results:
             if not result:
                 print(f"   - {name}")
-

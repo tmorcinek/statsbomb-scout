@@ -9,8 +9,8 @@ import socceraction.spadl as spadl
 import socceraction.spadl.config as spadl_config
 from socceraction.xthreat import ExpectedThreat
 
-from src.action_valuation import calculate_xt_values, calculate_xg_values
-from src.xthreat import get_default_xt_model
+from src.ml.action_valuation import calculate_xt_values, calculate_xg_values
+from src.ml.xthreat import get_default_xt_model
 
 warnings.filterwarnings('ignore', category=FutureWarning, module='socceraction')
 pd.set_option('future.no_silent_downcasting', True)

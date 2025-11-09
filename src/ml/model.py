@@ -172,7 +172,7 @@ def create_model(model_type: str, input_shape: tuple, **kwargs) -> keras.Model:
         model_builder = TransformerSequenceModel(input_shape, **kwargs)
     elif model_type == 'attention_lstm':
         # Import here to avoid circular dependency
-        from src.models.attention_lstm import AttentionLSTMModel
+        from src.ml.models.attention_lstm import AttentionLSTMModel
         model_builder = AttentionLSTMModel(input_shape, **kwargs)
     else:
         raise ValueError(f"Unknown model type: {model_type}. Use 'lstm', 'transformer', or 'attention_lstm'")
