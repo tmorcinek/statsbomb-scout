@@ -3,7 +3,6 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-import numpy as np
 
 
 class LSTMSequenceModel:
@@ -160,7 +159,7 @@ def create_model(model_type: str, input_shape: tuple, **kwargs) -> keras.Model:
     Factory function to create a model.
 
     Args:
-        model_type: 'lstm' or 'transformer'
+        model_type: 'lstm', 'transformer', or 'attention_lstm'
         input_shape: Shape of input data
         **kwargs: Additional parameters for model
 
@@ -171,8 +170,12 @@ def create_model(model_type: str, input_shape: tuple, **kwargs) -> keras.Model:
         model_builder = LSTMSequenceModel(input_shape, **kwargs)
     elif model_type == 'transformer':
         model_builder = TransformerSequenceModel(input_shape, **kwargs)
+    elif model_type == 'attention_lstm':
+        # Import here to avoid circular dependency
+        from src.models.attention_lstm import AttentionLSTMModel
+        model_builder = AttentionLSTMModel(input_shape, **kwargs)
     else:
-        raise ValueError(f"Unknown model type: {model_type}")
+        raise ValueError(f"Unknown model type: {model_type}. Use 'lstm', 'transformer', or 'attention_lstm'")
 
     model = model_builder.build()
     model_builder.compile()

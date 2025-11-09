@@ -12,9 +12,9 @@ LEARNING_RATE = 0.001
 VALIDATION_SPLIT = 0.2
 TEST_SPLIT = 0.1
 
-# Model type: 'lstm' or 'transformer'
 MODEL_TYPE = 'lstm'
 # MODEL_TYPE = 'transformer'
+# MODEL_TYPE = 'attention_lstm'
 
 # LSTM parameters
 LSTM_UNITS = 128

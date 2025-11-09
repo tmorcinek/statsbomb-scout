@@ -25,7 +25,9 @@ statsbomb-scout/
 │   └── processed/        # Przetworzone dane
 ├── docs/                 # Dokumentacja
 │   ├── QUICKSTART.md
-│   └── NEXT_STEPS.md
+│   ├── NEXT_STEPS.md
+│   └── models/
+│       └── ATTENTION_LSTM.md  # Dokumentacja Attention LSTM
 ├── models/               # Zapisane modele i wykresy (patrz models/README.md)
 ├── src/
 │   ├── __init__.py
@@ -35,7 +37,9 @@ statsbomb-scout/
 │   ├── xthreat.py        # Modele xThreat
 │   ├── action_valuation.py  # Wycena akcji
 │   ├── model.py          # Architektura LSTM/Transformer
-│   └── train.py          # Trenowanie i ewaluacja
+│   ├── train.py          # Trenowanie i ewaluacja
+│   └── models/           # Niestandardowe architektury modeli
+│       ├── attention_lstm.py      # Model LSTM z attention
 ├── tests/                # Testy jednostkowe
 │   ├── test_preprocessing.py
 │   ├── test_xthreat.py
@@ -75,10 +79,15 @@ Dane StatsBomb są już dostępne w folderze `data/statsbomb/data/`:
 - Pipeline automatycznie wczytuje dane przy użyciu `load_statsbomb_socceraction_data()`
 
 ### 2. Konfiguracja
+
+#### Model type: 'lstm', 'transformer', or 'attention_lstm'
 Edytuj `config.py` aby dostosować parametry:
+
+#### MODEL_TYPE = 'attention_lstm'  # ⭐ Model z wagami attention!
 ```python
-# Model type: 'lstm' or 'transformer'
+# Model type: 'lstm', 'transformer', or 'attention_lstm'
 MODEL_TYPE = 'lstm'
+# MODEL_TYPE = 'attention_lstm'  # ⭐ Model z wagami attention!
 
 # Data splits
 SEQUENCE_LENGTH = 10      # Długość sekwencji akcji
@@ -104,11 +113,11 @@ TRANSFORMER_BLOCKS = 2    # Liczba bloków transformera
 ### 3. Uruchomienie pipeline
 ```bash
 python main.py
-```
+- **models/lstm/**, **models/transformer/**, lub **models/attention_lstm/** - folder w zależności od typu modelu
 
 ### 4. Zapisywane modele
 Podczas treningu model automatycznie zapisuje wyniki do folderu `models/`:
-- **models/lstm/** lub **models/transformer/** - folder w zależności od typu modelu
+- **models/lstm/**, **models/transformer/**, lub **models/attention_lstm/** - folder w zależności od typu modelu
   - **best_model.h5** - najlepszy model (najniższa `val_loss`) zapisywany przez `ModelCheckpoint`
   - **metrics.json** - metryki ewaluacji (test_loss, test_mae, rmse)
   - **training_history.png** - wykres historii treningu
@@ -138,11 +147,23 @@ Podczas treningu model automatycznie zapisuje wyniki do folderu `models/`:
 ### action_valuation.py
 - Funkcje do wyceny akcji piłkarskich
 - Integracja z modelami xThreat
+- `create_model()`: Factory function do tworzenia modeli ('lstm', 'transformer', 'attention_lstm')
 
+### src/models/attention_lstm.py
+- `AttentionLSTMModel`: Model LSTM z mechanizmem attention
+- Zwraca wartość + wagi attention (suma = 1.0) dla każdej akcji w sekwencji
+- Umożliwia interpretację, które akcje są najważniejsze
+- Zobacz dokumentację: `models/ATTENTION_LSTM.md`
 ### model.py
 - `LSTMSequenceModel`: Model LSTM z warstwami dropout
 - `TransformerSequenceModel`: Model Transformer z attention
-- `create_model()`: Factory function do tworzenia modeli
+- `create_model()`: Factory function do tworzenia modeli ('lstm', 'transformer', 'attention_lstm')
+
+### src/models/attention_lstm.py
+- `AttentionLSTMModel`: Model LSTM z mechanizmem attention
+- Zwraca wartość + wagi attention (suma = 1.0) dla każdej akcji w sekwencji
+- Umożliwia interpretację, które akcje są najważniejsze
+- Zobacz dokumentację: `docs/models/ATTENTION_LSTM.md`
 
 ### train.py
 - `ModelTrainer`: Klasa do trenowania i ewaluacji
@@ -166,6 +187,15 @@ Wartość sekwencji obliczana jako **maksimum z sumy xG i sumy xT** ostatnich ak
 - **xG = statsbomb_xg** dla nieudanych strzałów
 - **xG = 0.0** dla akcji niebędących strzałem
 - **xT** (Expected Threat) dla każdej akcji na podstawie modelu xThreat
+### Attention LSTM (⭐ Nowość)
+```
+Input → Bidirectional LSTM(128) → LSTM(128) → Attention Layer
+    ├─→ Context → Dense(64) → VALUE
+    └─→ ATTENTION WEIGHTS (suma = 1.0)
+```
+**Zwraca**: wartość + wagi ważności każdej akcji w sekwencji  
+**Dokumentacja**: Zobacz `docs/models/ATTENTION_LSTM.md`
+
 
 Etykieta: `max(sum(xG), sum(xT))` z ostatnich `SEQUENCE_LENGTH` akcji posiadania
 
@@ -175,6 +205,15 @@ Etykieta: `max(sum(xG), sum(xT))` z ostatnich `SEQUENCE_LENGTH` akcji posiadania
 ```
 Input → LSTM(128) → Dropout → LSTM(64) → Dropout → Dense(64) → Dense(1)
 ```
+
+### Attention LSTM (⭐ Nowość)
+```
+Input → Bidirectional LSTM(128) → LSTM(128) → Attention Layer
+    ├─→ Context → Dense(64) → VALUE
+    └─→ ATTENTION WEIGHTS (suma = 1.0)
+```
+**Zwraca**: wartość + wagi ważności każdej akcji w sekwencji  
+**Dokumentacja**: Zobacz `models/ATTENTION_LSTM.md`
 
 ### Transformer
 ```

@@ -2,7 +2,6 @@
 
 import config
 import pandas as pd
-from pathlib import Path
 
 from src.data_loader import load_statsbomb_socceraction_data
 from src.data_splitter import split_matches
@@ -59,8 +58,16 @@ def main():
             num_blocks=config.TRANSFORMER_BLOCKS,
             dropout=config.LSTM_DROPOUT
         )
+    elif config.MODEL_TYPE == 'attention_lstm':
+        model = create_model(
+            model_type='attention_lstm',
+            input_shape=input_shape,
+            lstm_units=config.LSTM_UNITS,
+            lstm_dropout=config.LSTM_DROPOUT,
+            return_attention=True
+        )
     else:
-        raise ValueError(f"Unknown MODEL_TYPE: {config.MODEL_TYPE}. Use 'lstm' or 'transformer'")
+        raise ValueError(f"Unknown MODEL_TYPE: {config.MODEL_TYPE}. Use 'lstm', 'transformer', or 'attention_lstm'")
 
     model.summary()
 
