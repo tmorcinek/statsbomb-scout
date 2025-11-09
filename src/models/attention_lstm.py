@@ -143,9 +143,18 @@ class AttentionLSTMModel:
             learning_rate: Learning rate for optimizer
         """
         if self.return_attention:
+            # Use MSE for value, dummy loss for attention_weights with 0 weight
+            # This ensures metrics are properly tracked
             self.model.compile(
                 optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
-                loss={'value': 'mse'},  # Only value has loss
+                loss={
+                    'value': 'mse',
+                    'attention_weights': 'mse'  # Dummy loss, weight is 0
+                },
+                loss_weights={
+                    'value': 1.0,
+                    'attention_weights': 0.0  # No contribution to total loss
+                },
                 metrics={'value': ['mae']}
             )
         else:

@@ -50,9 +50,18 @@ class ModelTrainer:
         """
         # For multi-output models, wrap labels in dict
         if self.has_multiple_outputs and not isinstance(y_train, dict):
-            y_train = {'value': y_train}
-            y_val = {'value': y_val}
-        
+            # Check if model has attention_weights output
+            output_names = self.model.output_names if hasattr(self.model, 'output_names') else []
+            if 'attention_weights' in output_names:
+                # Provide dummy targets for attention weights (loss weight is 0, so values don't matter)
+                dummy_attention_train = np.zeros((len(y_train), X_train.shape[1]))
+                dummy_attention_val = np.zeros((len(y_val), X_val.shape[1]))
+                y_train = {'value': y_train, 'attention_weights': dummy_attention_train}
+                y_val = {'value': y_val, 'attention_weights': dummy_attention_val}
+            else:
+                y_train = {'value': y_train}
+                y_val = {'value': y_val}
+
         # Define callbacks
         callbacks = [
             keras.callbacks.EarlyStopping(
@@ -98,7 +107,14 @@ class ModelTrainer:
         """
         # For multi-output models, wrap labels in dict
         if self.has_multiple_outputs and not isinstance(y_test, dict):
-            y_test_dict = {'value': y_test}
+            # Check if model has attention_weights output
+            output_names = self.model.output_names if hasattr(self.model, 'output_names') else []
+            if 'attention_weights' in output_names:
+                # Provide dummy targets for attention weights (loss weight is 0, so values don't matter)
+                dummy_attention_test = np.zeros((len(y_test), X_test.shape[1]))
+                y_test_dict = {'value': y_test, 'attention_weights': dummy_attention_test}
+            else:
+                y_test_dict = {'value': y_test}
         else:
             y_test_dict = y_test
         
