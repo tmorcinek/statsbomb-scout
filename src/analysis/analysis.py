@@ -8,6 +8,10 @@ warnings.filterwarnings('ignore', category=FutureWarning, message='.*Downcasting
 
 from src.data.data_loader import load_statsbomb_socceraction_data, _filter_relevant_events
 
+pd.set_option('display.width', 1000)
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
+
 
 def plot_possession_distribution(possessions_df: pd.DataFrame, title: str = "Rozkład długości possession") -> None:
     """Create a histogram and KDE plot for possession length distribution"""
@@ -46,10 +50,13 @@ def plot_possession_by_team(possessions_df: pd.DataFrame) -> None:
 def analyze_possessions(events_df: pd.DataFrame) -> pd.DataFrame:
     return events_df.groupby('possession').agg(
         game_id=('game_id', 'first'),
-        possession_team=('team_name', 'first'),
+        possession_team=('possession_team_name', 'first'),
         length=('possession', 'size'),
-        startPosition=('location', 'first'),
-        endPosition=('location', 'last')
+        start_position=('location', 'first'),
+        end_position=('location', 'last'),
+        period_id=('period_id', 'first'),
+        start_timestamp=('timestamp', 'first'),
+        end_timestamp=('timestamp', 'last')
     ).reset_index()
 
 
@@ -66,19 +73,19 @@ def calculate_possession_statistics(possessions_df: pd.DataFrame) -> dict:
 
 def analyze_all_matches() -> pd.DataFrame:
     return pd.concat((
-        analyze_possessions(_filter_relevant_events(events.assign(type=events["type_name"]).sort_values("index", kind="mergesort")))
+        analyze_possessions(_filter_relevant_events(
+            events.assign(type=events["type_name"])
+                  .sort_values("index", kind="mergesort")
+                  # .pipe(lambda df: df[df['team_id'] == df['possession_team_id']])
+        ))
         for _, events in load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282)
     ), ignore_index=True)
 
 
-if __name__ == '__main__':
-    pd.set_option('display.width', 1000)
-    pd.set_option('display.max_rows', None)
-    pd.set_option('display.max_columns', None)
-
-    # all_possessions = analyze_all_matches()
-    # all_possessions.to_csv('data/processed/all_possessions.csv', index=False)
-    all_possessions = pd.read_csv('data/processed/all_possessions.csv')
+def test_analyze_possessions():
+    all_possessions = analyze_all_matches()
+    all_possessions.to_csv('data/processed/all_possessions.csv', index=False)
+    # all_possessions = pd.read_csv('data/processed/all_possessions.csv')
 
     for key, value in calculate_possession_statistics(all_possessions).items():
         print(f"  {key}: {value:.2f}")
@@ -90,3 +97,16 @@ if __name__ == '__main__':
     fig2.savefig('data/plot/possession_by_team.png', dpi=300, bbox_inches='tight')
 
     plt.show()
+
+
+def test_events():
+
+    game, events = next(load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282))
+    events = events.drop(
+        columns=['play_pattern_id', 'play_pattern_name', 'extra', 'minute', 'second', 'player_id', 'related_events', 'player_name', 'position_id',
+                 'visible_area_360', 'freeze_frame_360', 'd7c4f4a8-77b9-40c5-8d81-f50b40355723'],
+        errors='ignore')
+    events = events[events['team_id'] == events['possession_team_id']]
+
+    print(f"Event columns: {list(events.columns)}")
+    print(f"Total events: {events.head(50)}")
