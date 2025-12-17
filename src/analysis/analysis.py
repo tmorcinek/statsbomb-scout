@@ -1,7 +1,9 @@
+import warnings
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-import warnings
+
 warnings.filterwarnings('ignore', category=FutureWarning, message='.*Downcasting object dtype arrays.*')
 
 from src.data.data_loader import load_statsbomb_socceraction_data, _filter_relevant_events
@@ -42,21 +44,6 @@ def plot_possession_by_team(possessions_df: pd.DataFrame) -> None:
 
 
 def analyze_possessions(events_df: pd.DataFrame) -> pd.DataFrame:
-    possessions_data = []
-
-    for possession_id, group in events_df.groupby('possession'):
-        possessions_data.append({
-            'game_id': group['game_id'].iloc[0],
-            'possession_team': group['team_name'].iloc[0],
-            'possession_id': possession_id,
-            'length': len(group),
-            'startPosition': group['location'].iloc[0],
-            'endPosition': group['location'].iloc[-1]
-        })
-
-    return pd.DataFrame(possessions_data)
-
-def analyze_possessions(events_df: pd.DataFrame) -> pd.DataFrame:
     return events_df.groupby('possession').agg(
         game_id=('game_id', 'first'),
         possession_team=('team_name', 'first'),
@@ -64,6 +51,7 @@ def analyze_possessions(events_df: pd.DataFrame) -> pd.DataFrame:
         startPosition=('location', 'first'),
         endPosition=('location', 'last')
     ).reset_index()
+
 
 def calculate_possession_statistics(possessions_df: pd.DataFrame) -> dict:
     return {
@@ -88,9 +76,9 @@ if __name__ == '__main__':
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
 
-    all_possessions = analyze_all_matches()
-    all_possessions.to_csv('data/processed/all_possessions.csv', index=False)
-    # all_possessions = pd.read_csv('data/processed/all_possessions.csv')
+    # all_possessions = analyze_all_matches()
+    # all_possessions.to_csv('data/processed/all_possessions.csv', index=False)
+    all_possessions = pd.read_csv('data/processed/all_possessions.csv')
 
     for key, value in calculate_possession_statistics(all_possessions).items():
         print(f"  {key}: {value:.2f}")
