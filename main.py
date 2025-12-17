@@ -3,8 +3,8 @@
 import config
 import pandas as pd
 
-from src.ml.data_loader import load_statsbomb_socceraction_data
-from src.ml.data_splitter import split_matches
+from src.data.data_loader import load_statsbomb_socceraction_data
+from src.data.data_splitter import split_matches
 from src.ml.preprocessing import SequencePreprocessor
 from src.ml.model import create_model
 from src.ml.train import ModelTrainer

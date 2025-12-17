@@ -65,7 +65,9 @@ class TestCalculateXGValues:
         game, events = sample_game
 
         goals_df = goals(events)
-        shots_df = shots(events).loc[~shots(events).index.isin(goals_df.index)]
+        shots_df = shots(events)
+
+        shots_df = shots_df.loc[~shots_df.index.isin(goals_df.index)]
         assert len(shots_df) == 13, "13 shots expected in sample data"
 
         shots_xg_values = calculate_xg_values(shots_df)
