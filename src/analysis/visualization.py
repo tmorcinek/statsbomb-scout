@@ -4,10 +4,9 @@ from typing import Optional
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import socceraction.spadl as spadl
 from mplsoccer.soccer.pitch import VerticalPitch
 
-from src.analysis.actions_possessions import enrich_actions_with_event_data
+from src.analysis.actions_possessions_analysis import extract_possessions_with_shots, extract_possessions_ended_with_goals
 from src.data.data_loader import load_statsbomb_socceraction_data
 
 pd.set_option('display.max_columns', None)
@@ -16,21 +15,6 @@ pd.set_option('display.max_colwidth', None)
 
 PITCH_LENGTH = 105
 PITCH_WIDTH = 68
-
-
-def normalize_pitch(actions: pd.DataFrame, home_team_id: int) -> pd.DataFrame:
-    if actions.iloc[0]['team_id'] == home_team_id:
-        return actions
-
-    # Rotate start position
-    actions.loc[:, 'start_x'] = PITCH_LENGTH - actions['start_x']
-    actions.loc[:, 'start_y'] = PITCH_WIDTH - actions['start_y']
-
-    # Rotate end position
-    actions.loc[:, 'end_x'] = PITCH_LENGTH - actions['end_x']
-    actions.loc[:, 'end_y'] = PITCH_WIDTH - actions['end_y']
-
-    return actions
 
 
 def plot_possession_actions(possession_actions: pd.DataFrame, ax=None, figsize: tuple = (10, 8)) -> Optional[plt.Figure]:
@@ -90,22 +74,21 @@ def plot_possession_actions(possession_actions: pd.DataFrame, ax=None, figsize: 
     # Draw all circles using scatter
     pitch.scatter(
         np.array(start_xs), np.array(start_ys),
-        s=60, c=start_colors,
+        s=40, c=start_colors,
         alpha=0.8, ax=ax
     )
 
     # Draw first point with black edge on top
     pitch.scatter(
         np.array([start_xs[0]]), np.array([start_ys[0]]),
-        s=60, c=[start_colors[0]],
-        edgecolors='black', linewidths=2,
+        s=40, c=[start_colors[0]],
         alpha=0.8, ax=ax, zorder=4
     )
 
     # Draw star marker at the end of the last action
     pitch.scatter(
         np.array(end_xs), np.array(end_ys),
-        s=80, c=['black'], marker='*',
+        s=40, c=['black'], marker='*',
         alpha=0.9, ax=ax, zorder=5
     )
 
@@ -133,7 +116,7 @@ def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame], figsi
     if num_possessions == 0:
         raise ValueError("possession_actions_list cannot be empty")
 
-    cols = math.ceil(math.sqrt(num_possessions))
+    cols = math.ceil(math.sqrt(num_possessions)) + 1
     rows = math.ceil(num_possessions / cols)
 
     if figsize is None:
@@ -162,13 +145,13 @@ def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame], figsi
 if __name__ == '__main__':
     game, events = next(load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282))
     home_team_id = game['home_team_id']
-    actions = spadl.statsbomb.convert_to_actions(events, home_team_id, xy_fidelity_version=2)
-    actions = enrich_actions_with_event_data(actions, events)
+    possessions = extract_possessions_with_shots(game, events)
+    # possessions = extract_possessions_ended_with_goals(game, events)
+    print(f"Total possessions with shots: \n{possessions}")
 
-    possession_ids = [7, 8, 9, 10, 11, 12]
-    possession_list = [normalize_pitch(actions[actions['possession'] == pid], home_team_id) for pid in possession_ids]
+    possessions_list = list(possessions.values())
 
-    fig = plot_multiple_possessions(possession_list)
+    fig = plot_multiple_possessions(possessions_list)
     fig.savefig('data/plot/possessions_7-12_pitch.png', dpi=300, bbox_inches='tight')
 
     plt.show()
