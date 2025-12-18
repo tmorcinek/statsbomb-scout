@@ -1,3 +1,4 @@
+import math
 from typing import Optional
 
 import matplotlib.pyplot as plt
@@ -15,6 +16,21 @@ pd.set_option('display.max_colwidth', None)
 
 PITCH_LENGTH = 105
 PITCH_WIDTH = 68
+
+
+def normalize_pitch(actions: pd.DataFrame, home_team_id: int) -> pd.DataFrame:
+    if actions.iloc[0]['team_id'] == home_team_id:
+        return actions
+
+    # Rotate start position
+    actions.loc[:, 'start_x'] = PITCH_LENGTH - actions['start_x']
+    actions.loc[:, 'start_y'] = PITCH_WIDTH - actions['start_y']
+
+    # Rotate end position
+    actions.loc[:, 'end_x'] = PITCH_LENGTH - actions['end_x']
+    actions.loc[:, 'end_y'] = PITCH_WIDTH - actions['end_y']
+
+    return actions
 
 
 def plot_possession_actions(possession_actions: pd.DataFrame, ax=None, figsize: tuple = (10, 8)) -> Optional[plt.Figure]:
@@ -111,54 +127,36 @@ def plot_possession_actions(possession_actions: pd.DataFrame, ax=None, figsize: 
     return fig if fig is not None else ax.figure
 
 
-def plot_multiple_possessions(actions: pd.DataFrame, possession_ids: list, home_team_id: int, figsize: tuple = (18, 12)) -> plt.Figure:
-    if len(possession_ids) > 6:
-        print("Warning: Only 6 possessions can be displayed. Showing first 6.")
-        possession_ids = possession_ids[:6]
+def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame], figsize: tuple = None) -> plt.Figure:
+    num_possessions = len(possession_actions_list)
 
-    # Create figure with 2x3 subplots
-    pitches = [VerticalPitch(pitch_type='custom', pitch_length=PITCH_LENGTH, pitch_width=PITCH_WIDTH,
-                             pitch_color='white', line_color='black') for _ in range(6)]
-    fig, axes = plt.subplots(2, 3, figsize=figsize)
-    axes = axes.flatten().tolist()
+    if num_possessions == 0:
+        raise ValueError("possession_actions_list cannot be empty")
 
-    # Draw each possession
-    for plot_idx, possession_id in enumerate(possession_ids):
-        possession_actions = actions[actions['possession'] == possession_id]
-        possession_actions = normalize_pitch(possession_actions, home_team_id)
+    cols = math.ceil(math.sqrt(num_possessions))
+    rows = math.ceil(num_possessions / cols)
 
-        if len(possession_actions) == 0:
-            axes[plot_idx].text(0.5, 0.5, f'No actions for possession {possession_id}',
-                                ha='center', va='center', transform=axes[plot_idx].transAxes)
-            continue
+    if figsize is None:
+        figsize = (6 * cols, 6 * rows)
 
-        # Draw pitch
-        pitches[plot_idx].draw(ax=axes[plot_idx])
+    fig, axes = plt.subplots(rows, cols, figsize=figsize)
 
-        # Plot possession on this subplot
-        plot_possession_actions(possession_actions, ax=axes[plot_idx])  # type: ignore
+    if num_possessions == 1:
+        axes = [axes]
+    else:
+        axes = axes.flatten().tolist()
 
-    # Hide unused subplots
-    for idx in range(len(possession_ids), 6):
+    for plot_idx, possession_actions in enumerate(possession_actions_list):
+        pitch = VerticalPitch(pitch_type='custom', pitch_length=PITCH_LENGTH, pitch_width=PITCH_WIDTH, pitch_color='white', line_color='black')
+        pitch.draw(ax=axes[plot_idx])
+
+        plot_possession_actions(possession_actions, ax=axes[plot_idx])
+
+    for idx in range(num_possessions, rows * cols):
         axes[idx].axis('off')
 
     plt.tight_layout()
     return fig
-
-
-def normalize_pitch(actions: pd.DataFrame, home_team_id: int) -> pd.DataFrame:
-    if actions.iloc[0]['team_id'] == home_team_id:
-        return actions
-
-    # Rotate start position
-    actions.loc[:, 'start_x'] = PITCH_LENGTH - actions['start_x']
-    actions.loc[:, 'start_y'] = PITCH_WIDTH - actions['start_y']
-
-    # Rotate end position
-    actions.loc[:, 'end_x'] = PITCH_LENGTH - actions['end_x']
-    actions.loc[:, 'end_y'] = PITCH_WIDTH - actions['end_y']
-
-    return actions
 
 
 if __name__ == '__main__':
@@ -167,9 +165,10 @@ if __name__ == '__main__':
     actions = spadl.statsbomb.convert_to_actions(events, home_team_id, xy_fidelity_version=2)
     actions = enrich_actions_with_event_data(actions, events)
 
-    # Example: Plot 6 possessions on one figure
     possession_ids = [7, 8, 9, 10, 11, 12]
-    fig = plot_multiple_possessions(actions, possession_ids, home_team_id)
+    possession_list = [normalize_pitch(actions[actions['possession'] == pid], home_team_id) for pid in possession_ids]
+
+    fig = plot_multiple_possessions(possession_list)
     fig.savefig('data/plot/possessions_7-12_pitch.png', dpi=300, bbox_inches='tight')
 
     plt.show()
