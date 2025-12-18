@@ -5,7 +5,7 @@ RAW_DATA_PATH = "data/raw/"
 PROCESSED_DATA_PATH = "data/processed/"
 
 # Model hyperparameters
-SEQUENCE_LENGTH = 10
+SEQUENCE_LENGTH = 8
 BATCH_SIZE = 32
 EPOCHS = 50
 LEARNING_RATE = 0.001

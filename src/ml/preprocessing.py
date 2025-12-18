@@ -19,18 +19,7 @@ pd.set_option('future.no_silent_downcasting', True)
 class SequencePreprocessor:
     """Preprocesses event data into fixed-length sequences with features."""
 
-    def __init__(
-            self,
-            sequence_length: int = 10,
-            xt_model: ExpectedThreat = get_default_xt_model()
-    ):
-        """
-        Initialize preprocessor.
-
-        Args:
-            sequence_length: Number of actions in each sequence
-            xt_model: Expected Threat model for calculating xT values
-        """
+    def __init__(self, sequence_length: int = 10, xt_model: ExpectedThreat = get_default_xt_model()):
         self.sequence_length = sequence_length
         self.xt_model = xt_model
         self.action_type_mapping = {}
@@ -38,28 +27,18 @@ class SequencePreprocessor:
     def _extract_possessions(self, events_df: pd.DataFrame) -> List[pd.DataFrame]:
         """
         Extract possession phases from match events.
-
-        Filters possessions to include only actions by the possessing team
-        and with at least sequence_length actions.
-
-        Args:
-            events_df: DataFrame with match events
-
-        Returns:
-            List of DataFrames, each representing one possession
         """
         possessions = []
 
         for possession_id, possession_group in events_df.groupby("possession"):
-            # Get the team that has possession
             possession_team = possession_group['possession_team_name'].iloc[0]
 
             # Filter events to only include actions by the possessing team
-            team_events = possession_group[possession_group['team_name'] == possession_team]
+            # team_events = possession_group[possession_group['team_name'] == possession_team]
 
             # Only include possessions with minimum number of events
-            if len(team_events) >= self.sequence_length:
-                possessions.append(team_events.copy())
+            if len(possession_group) >= self.sequence_length:
+                possessions.append(possession_group.copy())
 
         return possessions
 
@@ -205,19 +184,9 @@ class SequencePreprocessor:
 
         return features[-self.sequence_length:].reshape(1, self.sequence_length, -1)
 
-
     def _create_label(self, actions_df: pd.DataFrame) -> np.ndarray:
         """
         Create label for possession by comparing total xG and xT.
-
-        Calculates sum of xG and sum of xT across all actions,
-        then returns the maximum of these two sums.
-
-        Args:
-            actions_df: DataFrame containing 'xG' and 'xT' columns
-
-        Returns:
-            Array with single value: max(sum(xG), sum(xT))
         """
         total_xg = actions_df['xG'].sum()
         total_xt = actions_df['xT'].sum()

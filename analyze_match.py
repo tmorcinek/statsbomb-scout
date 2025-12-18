@@ -14,17 +14,6 @@ import config
 
 
 def load_single_match(competition_id: int, season_id: int, match_id: int) -> Tuple[pd.Series, pd.DataFrame]:
-    """
-    Load events for a single match.
-
-    Args:
-        competition_id: StatsBomb competition ID
-        season_id: StatsBomb season ID
-        match_id: Specific match ID to analyze
-
-    Returns:
-        Tuple of (match_info, events_df)
-    """
     for match, events in load_statsbomb_socceraction_data("data/statsbomb/data", competition_id, season_id):
         if match['game_id'] == match_id:
             return match, events
