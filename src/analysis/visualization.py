@@ -1,9 +1,10 @@
 from typing import Optional
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import socceraction.spadl as spadl
-from mplsoccer import Pitch
+from mplsoccer.soccer.pitch import VerticalPitch
 
 from src.analysis.actions_possessions import enrich_actions_with_event_data
 from src.data.data_loader import load_statsbomb_socceraction_data
@@ -12,14 +13,23 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_colwidth', None)
 
+
 def plot_possession_actions(possession_actions: pd.DataFrame, figsize: tuple = (10, 8)) -> Optional[plt.Figure]:
     # Create pitch
-    pitch = Pitch(pitch_type='custom', pitch_length=105, pitch_width=68, pitch_color='white', line_color='black')
+    pitch = VerticalPitch(pitch_type='custom', pitch_length=105, pitch_width=68, pitch_color='white', line_color='black')
     fig, ax = pitch.draw(figsize=figsize)
 
     # Get team and color information
     team_name = possession_actions.iloc[0]['team_name']
-    colors = possession_actions['team_name'].map(lambda x: 'red' if x == team_name else 'blue')
+
+    # Separate arrays for scatter plot
+    start_xs = []
+    start_ys = []
+    start_colors = []
+
+    # Arrays for end position marker (star for last action)
+    end_xs = []
+    end_ys = []
 
     # Plot passes/actions as arrows
     for idx, (i, action) in enumerate(possession_actions.iterrows()):
@@ -27,24 +37,53 @@ def plot_possession_actions(possession_actions: pd.DataFrame, figsize: tuple = (
         start_y = action['start_y']
         end_x = action['end_x']
         end_y = action['end_y']
-        color = colors.iloc[idx]
+
+        print(f"idx: {idx}, Action: {action['type_name']}, Start: ({start_x}, {start_y}), End: ({end_x}, {end_y})")
+        # Determine color: black for first action, blue for possessing team, red for opponent
+        if idx == 0:
+            color = 'black'
+        elif action['team_name'] == team_name:
+            color = 'blue'
+        else:
+            color = 'red'
 
         # Draw arrow for each action
         pitch.arrows(
             start_x, start_y, end_x, end_y,
-            ax=ax, width=2, color=color, alpha=0.6, label=action['type_name'] if idx == 0 else ""
+            ax=ax, width=2, color=color, alpha=0.6,
+            label=action['type_name'] if idx == 0 else ""
         )
 
-        # Add circle at start position
-        if idx == 0:
-            # First action - larger with black edge
-            ax.plot(start_x, start_y, 'o', color=color, markersize=10, alpha=0.8, markeredgecolor='black', markeredgewidth=2)
-        elif idx == len(possession_actions) - 1:
-            # Last action - larger with black edge
-            ax.plot(start_x, start_y, 'o', color=color, markersize=10, alpha=0.8, markeredgecolor='black', markeredgewidth=2)
-        else:
-            # Other actions - regular size
-            ax.plot(start_x, start_y, 'o', color=color, markersize=6, alpha=0.8)
+        # Collect start positions for scatter plot
+        start_xs.append(start_x)
+        start_ys.append(start_y)
+        start_colors.append(color)
+
+        # Collect end position marker for the last action
+        if idx == len(possession_actions) - 1:
+            end_xs.append(end_x)
+            end_ys.append(end_y)
+
+    print(f" colors for start positions: {start_colors}")
+    # Draw all circles using scatter
+    pitch.scatter(
+        np.array(start_xs), np.array(start_ys),
+        s=60, c=start_colors,
+        alpha=0.8, ax=ax
+    )
+
+    pitch.scatter(
+        np.array([start_xs[0]]), np.array([start_ys[0]]),
+        s=60, c=[start_colors[0]],
+        edgecolors='black', linewidths=2,
+        alpha=0.8, ax=ax, zorder=4
+    )
+
+    pitch.scatter(
+        np.array(end_xs), np.array(end_ys),
+        s=np.array(60), c=['black'], marker='*',
+        alpha=0.9, ax=ax, zorder=5
+    )
 
     # Add title with possession information
     possession_length = len(possession_actions)
@@ -67,7 +106,10 @@ def plot_possession_actions(possession_actions: pd.DataFrame, figsize: tuple = (
     return fig
 
 
-def normalize_pitch(actions: pd.DataFrame) -> pd.DataFrame:
+def normalize_pitch(actions: pd.DataFrame, home_team_id: int) -> pd.DataFrame:
+    if possession_actions.iloc[0]['team_id'] == home_team_id:
+        return actions
+
     pitch_length = 105
     pitch_width = 68
 
@@ -81,31 +123,22 @@ def normalize_pitch(actions: pd.DataFrame) -> pd.DataFrame:
 
     return actions
 
+
 if __name__ == '__main__':
     game, events = next(load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282))
-    print(f"Game info: {game['home_team_id']} vs {game['away_team_id']}\n Game: {game}")
-    actions = spadl.statsbomb.convert_to_actions(events, None, xy_fidelity_version=2)
+    home_team_id = game['home_team_id']
+    actions = spadl.statsbomb.convert_to_actions(events, home_team_id, xy_fidelity_version=2)
     actions = enrich_actions_with_event_data(actions, events)
-    actions = normalize_pitch(actions)
 
     # Example: Plot a possession
-    possession_id = 8
+    possession_id = 11
     possession_actions = actions[actions['possession'] == possession_id]
     print(f"Possession actions:\n{possession_actions}")
 
-    events = events.drop(
-        columns=['play_pattern_id', 'play_pattern_name',
-                 # 'extra',
-                 'minute', 'second',
-                 'player_id',
-                 # 'related_events',
-                 'player_name', 'position_id',
-                 'visible_area_360',
-                 'freeze_frame_360',
-                 ],
-        errors='ignore'
-    )
-    possession_events = events[events['event_id'] == '04b74e76-6803-489d-9612-ce3b580fbcff']
+    # possession_actions = possession_actions.tail(10)
+
+    possession_events = normalize_pitch(possession_actions, home_team_id)
+
     print(f"Possession events:\n{possession_events}")
 
     fig = plot_possession_actions(possession_actions)
