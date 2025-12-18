@@ -92,7 +92,7 @@ def main():
 
     print("\n" + "=" * 50)
     print("Pipeline completed successfully!")
-    print(f"Best model saved as: models/best_model.h5")
+    print(f"Best model saved as: models/{config.MODEL_TYPE}/best_model.keras")
     print("=" * 50)
 
 

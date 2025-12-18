@@ -76,7 +76,7 @@ class ModelTrainer:
                 min_lr=1e-7
             ),
             keras.callbacks.ModelCheckpoint(
-                filepath=str(self.model_dir / "best_model.h5"),
+                filepath=str(self.model_dir / "best_model.keras"),
                 monitor='val_loss',
                 save_best_only=True
             )
@@ -199,4 +199,3 @@ class ModelTrainer:
         with open(save_path, 'w') as f:
             json.dump(metrics, f, indent=2)
         print(f"Metrics saved to {save_path}")
-
