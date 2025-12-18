@@ -108,9 +108,6 @@ def plot_possession_actions(possession_actions: pd.DataFrame, ax=None, figsize: 
         fontsize=12, fontweight='normal', pad=20
     )
 
-    # Add legend
-    ax.legend(loc='upper left', fontsize=10)
-
     return fig if fig is not None else ax.figure
 
 
@@ -132,7 +129,7 @@ def plot_multiple_possessions(actions: pd.DataFrame, possession_ids: list, home_
 
         if len(possession_actions) == 0:
             axes[plot_idx].text(0.5, 0.5, f'No actions for possession {possession_id}',
-                               ha='center', va='center', transform=axes[plot_idx].transAxes)
+                                ha='center', va='center', transform=axes[plot_idx].transAxes)
             continue
 
         # Draw pitch
@@ -173,5 +170,6 @@ if __name__ == '__main__':
     # Example: Plot 6 possessions on one figure
     possession_ids = [7, 8, 9, 10, 11, 12]
     fig = plot_multiple_possessions(actions, possession_ids, home_team_id)
+    fig.savefig('data/plot/possessions_7-12_pitch.png', dpi=300, bbox_inches='tight')
 
     plt.show()
