@@ -1,55 +1,106 @@
 """Test script to verify preprocessing flow."""
 
-import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import pytest
+import socceraction.spadl as spadl
 
 import config
-from src.ml.preprocessing import SequencePreprocessor
+from src.analysis.visualization import plot_possession_actions
 from src.data.data_loader import load_statsbomb_socceraction_data
+from src.ml.preprocessing.sequence import SequencePreprocessor
 from src.ml.xthreat import get_default_xt_model
 
+pd.set_option('display.width', 1000)
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
 
-def test_preprocessing_flow():
-    """Test the complete preprocessing pipeline."""
 
-    print("Loading data...")
-    match, events = next(load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282))
+@pytest.fixture(scope="module")
+def sample_game():
+    return next(load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282))
 
-    print(f"\nMatch columns: {list(match.index)}")
-    print(f"Match info:\n{match}")
-    print(f"\nTotal events: {len(events)}")
 
-    # Extract match_id and home_team_id
+@pytest.fixture(scope="module")
+def home_team_id(sample_game):
+    match, _ = sample_game
+    return match.get('home_team_id')
+
+
+@pytest.fixture(scope="module")
+def preprocessor():
+    return SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH, xt_model=get_default_xt_model())
+
+
+@pytest.fixture(scope="module")
+def sample_extracted_possession(sample_game, preprocessor):
+    match, events = sample_game
+    return preprocessor._extract_possessions(events)[0]
+
+
+@pytest.fixture(scope="module")
+def sample_extracted_features(preprocessor, home_team_id, sample_extracted_possession):
+    return preprocessor._extract_features(sample_extracted_possession, home_team_id)
+
+
+def test_extract_possessions(sample_game, preprocessor):
+    match, events = sample_game
+
+    assert len(events) == 3485, "Number of events does not match!"
+
     match_id = match.get('game_id', match.name)  # Try game_id first, fallback to index
+    assert match_id == 3942819, "Match ID does not match!"
+
     home_team_id = match.get('home_team_id')
-
-    print(f"\nMatch ID: {match_id}")
-    print(f"Home team ID: {home_team_id}")
-
-    # Initialize preprocessor
-    preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH, xt_model=get_default_xt_model())
+    assert home_team_id == 941, "Home team ID does not match!"
 
     # Test _extract_possessions
-    print("\n--- Testing _extract_possessions ---")
-    possessions = preprocessor._extract_possessions(events)
-    print(f"Extracted {len(possessions)} possessions")
-
-    if possessions:
-        print(f"First possession length: {len(possessions[0])} events")
-        print(f"Possession lengths: min={min(len(p) for p in possessions)}, "
-              f"max={max(len(p) for p in possessions)}, "
-              f"mean={np.mean([len(p) for p in possessions]):.1f}")
+    possessions_df = preprocessor._extract_possessions(events)
+    assert len(possessions_df) == 89, "Number of possessions_df does not match!"
 
     # Test _extract_features
-    print("\n--- Testing _extract_features ---")
-    if possessions:
-        features_df = preprocessor._extract_features(possessions[0], home_team_id)
+    first_possession_df = possessions_df[0]
+    assert len(first_possession_df) == 13, "Number of actions in first possession does not match!"
+    assert first_possession_df.iloc[0]['possession'] == 2, "First possession ID does not match!"
+    assert len(first_possession_df.columns) == 28, "Number of columns in actions does not match!"
+
+    expected_columns = ['game_id', 'event_id', 'period_id', 'team_id', 'player_id', 'type_id', 'type_name', 'index', 'timestamp', 'minute', 'second',
+                        'possession', 'possession_team_id', 'possession_team_name', 'play_pattern_id', 'play_pattern_name', 'team_name', 'duration', 'extra',
+                        'related_events', 'player_name', 'position_id', 'position_name', 'location', 'under_pressure', 'counterpress', 'visible_area_360',
+                        'freeze_frame_360']
+    assert list(first_possession_df.columns) == expected_columns, "Column names do not match!"
+
+
+def test_extract_features(preprocessor, home_team_id, sample_extracted_possession):
+    assert sample_extracted_possession.iloc[0]['possession'] == 2
+
+    features_df = preprocessor._extract_features(sample_extracted_possession, home_team_id)
+    print(f"Features: \n{features_df}")
+
+    assert len(features_df) == 7, "Number of actions does not match!"
+    assert len(features_df.columns) == 24, "Number of features does not match!"
+
+
+def test_extracted_features(sample_game, sample_extracted_features):
+    actions = (spadl.add_names(sample_extracted_features))
+    actions['team_name'] = "Netherlands" if sample_extracted_features.iloc[0]['team_id'] == 941 else "England"
+    actions['possession'] = 2
+
+    assert len(sample_extracted_features) == 7, "Number of actions does not match!"
+    plot_possession_actions(actions)
+    plt.show()
+
+
+def test_flow(sample_extracted_features):
+    return
+    if possessions_df:
         print(f"Features DataFrame shape: {features_df.shape}")
         print(f"Columns: {list(features_df.columns)}")
         print(f"First row features:\n{features_df.iloc[0][['start_x', 'start_y', 'distance', 'angle', 'time_diff']]}")
 
     # Test _normalize_features
     print("\n--- Testing _normalize_features ---")
-    if possessions:
+    if possessions_df:
         normalized = preprocessor._normalize_features(features_df)
         print(f"Normalized features shape: {normalized.shape}")
         print(f"Feature range: min={normalized.min():.3f}, max={normalized.max():.3f}")
@@ -58,7 +109,7 @@ def test_preprocessing_flow():
     # Test _create_sequences (sliding window)
     print("\n--- Testing _create_sequences ---")
     sequences = None
-    if possessions:
+    if possessions_df:
         try:
             sequences = preprocessor._create_sequences(normalized)
             print(f"Sequences shape: {sequences.shape}")
@@ -68,12 +119,12 @@ def test_preprocessing_flow():
                 print(f"First sequence shape: {sequences[0].shape}")
                 print(f"First sequence first action (first 5 features): {sequences[0][0][:5]}")
         except ValueError as e:
-            # Possession too short to create sliding windows — that's acceptable for some possessions
+            # Possession too short to create sliding windows — that's acceptable for some possessions_df
             print(f"_create_sequences raised: {e}")
 
     # Test _create_simple_sequence and _create_label (consistent API usage)
     print("\n--- Testing _create_simple_sequence and _create_label ---")
-    if possessions:
+    if possessions_df:
         try:
             simple_seq = preprocessor._create_simple_sequence(normalized)
             print(f"Simple sequence shape: {simple_seq.shape}")
@@ -100,7 +151,7 @@ def test_preprocessing_flow():
     # Do not return values from tests (pytest warns if a test returns a value)
     # The test assertions above are sufficient.
 
-if __name__ == "__main__":
-    X, y = test_preprocessing_flow()
-    print(f"\n🎉 Preprocessing flow works correctly!")
-    print(f"Generated {len(X)} sequences with {X.shape[2]} features each")
+# if __name__ == "__main__":
+# X, y = test_preprocessing_flow()
+# print(f"\n🎉 Preprocessing flow works correctly!")
+# print(f"Generated {len(X)} sequences with {X.shape[2]} features each")

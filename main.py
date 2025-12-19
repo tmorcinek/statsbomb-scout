@@ -6,7 +6,7 @@ import config
 from src.data.data_loader import load_statsbomb_socceraction_data
 from src.data.data_splitter import split_matches
 from src.ml.models.model_factory import create_model
-from src.ml.preprocessing import SequencePreprocessor
+from src.ml.preprocessing.sequence import SequencePreprocessor
 from src.ml.train import ModelTrainer
 from src.ml.xthreat import get_default_xt_model
 

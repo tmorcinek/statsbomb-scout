@@ -19,19 +19,16 @@ pd.set_option('future.no_silent_downcasting', True)
 class SequencePreprocessor:
     """Preprocesses event data into fixed-length sequences with features."""
 
-    def __init__(self, sequence_length: int = 10, xt_model: ExpectedThreat = get_default_xt_model()):
+    def __init__(self, sequence_length: int, xt_model: ExpectedThreat = get_default_xt_model()):
         self.sequence_length = sequence_length
         self.xt_model = xt_model
         self.action_type_mapping = {}
 
     def _extract_possessions(self, events_df: pd.DataFrame) -> List[pd.DataFrame]:
-        """
-        Extract possession phases from match events.
-        """
         possessions = []
 
         for possession_id, possession_group in events_df.groupby("possession"):
-            possession_team = possession_group['possession_team_name'].iloc[0]
+            # possession_team = possession_group['possession_team_name'].iloc[0]
 
             # Filter events to only include actions by the possessing team
             # team_events = possession_group[possession_group['team_name'] == possession_team]
@@ -42,7 +39,7 @@ class SequencePreprocessor:
 
         return possessions
 
-    def _extract_features(self, possession: pd.DataFrame, home_team_id: int) -> pd.DataFrame:
+    def _extract_features(self, possession: pd.DataFrame) -> pd.DataFrame:
         """
         Extract features from possession events.
 
@@ -59,7 +56,7 @@ class SequencePreprocessor:
         Returns:
             DataFrame with SPADL actions and computed features (not normalized)
         """
-        actions = spadl.statsbomb.convert_to_actions(possession, home_team_id, xy_fidelity_version=2)
+        actions = spadl.statsbomb.convert_to_actions(possession, possession.iloc[0]['team_id'], xy_fidelity_version=2)
 
         actions["dx"] = actions["end_x"] - actions["start_x"]
         actions["dy"] = actions["end_y"] - actions["start_y"]
@@ -223,7 +220,7 @@ class SequencePreprocessor:
         all_labels = []
 
         for possession in possessions:
-            features = self._extract_features(possession, home_team_id)
+            features = self._extract_features(possession)
             # print(f"  → Possession {possession['possession'].iloc[0]}: {len(features)} actions")
             if len(features) < self.sequence_length:
                 # print(f"  → Possession too short, consist of only {len(features)} actions")
