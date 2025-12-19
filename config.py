@@ -12,13 +12,12 @@ LEARNING_RATE = 0.001
 VALIDATION_SPLIT = 0.2
 TEST_SPLIT = 0.1
 
-# MODEL_TYPE = 'lstm'
+MODEL_TYPE = 'lstm'
 # MODEL_TYPE = 'transformer'
-MODEL_TYPE = 'attention_lstm'
+# MODEL_TYPE = 'attention_lstm'
 
 # LSTM parameters
 LSTM_UNITS = 128
-LSTM_DROPOUT = 0.2
 
 # Transformer parameters
 TRANSFORMER_HEADS = 4
@@ -26,3 +25,5 @@ TRANSFORMER_DIM = 128
 TRANSFORMER_FF_DIM = 512
 TRANSFORMER_BLOCKS = 2
 
+# Dropout rate
+DROPOUT = 0.2

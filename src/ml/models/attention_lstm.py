@@ -77,20 +77,10 @@ class AttentionLSTMModel:
        - Attention weights (sequence_length floats summing to 1.0)
     """
 
-    def __init__(self, input_shape: tuple, lstm_units: int = 128,
-                 lstm_dropout: float = 0.2, return_attention: bool = True):
-        """
-        Initialize Attention LSTM model.
-
-        Args:
-            input_shape: Shape of input (sequence_length, n_features)
-            lstm_units: Number of LSTM units
-            lstm_dropout: Dropout rate
-            return_attention: If True, model returns (value, attention_weights)
-        """
+    def __init__(self, input_shape: tuple, lstm_units: int = 128, dropout: float = 0.2, return_attention: bool = True):
         self.input_shape = input_shape
         self.lstm_units = lstm_units
-        self.dropout = lstm_dropout
+        self.dropout = dropout
         self.return_attention = return_attention
         self.model = None
 
@@ -185,7 +175,7 @@ def create_attention_lstm_model(input_shape: tuple, lstm_units: int = 128,
     model_builder = AttentionLSTMModel(
         input_shape=input_shape,
         lstm_units=lstm_units,
-        lstm_dropout=lstm_dropout,
+        dropout=lstm_dropout,
         return_attention=return_attention
     )
 
@@ -193,4 +183,3 @@ def create_attention_lstm_model(input_shape: tuple, lstm_units: int = 128,
     model_builder.compile(learning_rate=learning_rate)
 
     return model
-
