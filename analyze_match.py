@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from typing import Tuple
 
 from src.data.data_loader import load_statsbomb_data, load_statsbomb_socceraction_data
-from src.ml.preprocessing import SequencePreprocessor
+from src.ml.preprocessing.sequence import SequencePreprocessor
 from src.ml.xthreat import get_default_xt_model
 from src.ml.models.attention_lstm import AttentionLayer
 import config

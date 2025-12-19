@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from mplsoccer.soccer.pitch import VerticalPitch
 
-from src.ml.preprocessing.possessions_extraction import extract_possessions_with_shots
+from src.ml.preprocessing.possessions_extraction import extract_possessions_with_shots, extract_possessions
 from src.data.data_loader import load_statsbomb_socceraction_data
 
 pd.set_option('display.max_columns', None)
@@ -145,13 +145,16 @@ def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame], figsi
 if __name__ == '__main__':
     game, events = next(load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282))
     home_team_id = game['home_team_id']
+    # possessions = extract_possessions(game, events)
     possessions = extract_possessions_with_shots(game, events)
     # possessions = extract_possessions_ended_with_goals(game, events)
     print(f"Total possessions with shots: \n{possessions}")
 
     possessions_list = list(possessions.values())
+    # possessions_list = [possessions[pid] for pid in [67, 7, 58, 15, 11] if pid in possessions]
 
     fig = plot_multiple_possessions(possessions_list)
-    fig.savefig('data/plot/possessions_7-12_pitch.png', dpi=300, bbox_inches='tight')
+    fig.savefig('data/plot/possessions_shots.png', dpi=300, bbox_inches='tight')
+    # fig.savefig('data/plot/possessions_67_7_58_15_11.png', dpi=300, bbox_inches='tight')
 
     plt.show()
