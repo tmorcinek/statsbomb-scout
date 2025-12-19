@@ -2,7 +2,8 @@ import warnings
 
 import socceraction.spadl as spadl
 
-from src.analysis.actions_possessions import enrich_actions_with_event_data, possessions_from_actions
+from src.analysis.actions_possessions import possessions_from_actions
+from src.ml.preprocessing.possessions_extraction import extract_actions_from_events
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 
@@ -12,13 +13,18 @@ from src.data.data_loader import load_statsbomb_socceraction_data, load_soccerac
 def test_first_match_possessions():
     game, events = next(load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282))
 
-    actions = spadl.statsbomb.convert_to_actions(events, game['home_team_id'], xy_fidelity_version=2)
-    actions = enrich_actions_with_event_data(actions, events)
+    actions_df = extract_actions_from_events(game, events)
 
-    possessions = possessions_from_actions(actions)
+    possessions_df = possessions_from_actions(actions_df)
+    # print(f"Events:\n{possessions_df}")
 
-    print(f"Event columns:\n{len(possessions)}")
-    print(f"Events:\n{possessions}")
+    assert len(possessions_df) == 111
+
+    at_least_8_actions_in_possession = (possessions_df['length'] >= 8).sum()
+    assert at_least_8_actions_in_possession == 71
+
+    at_least_10_actions_in_possession = (possessions_df['length'] >= 10).sum()
+    assert at_least_10_actions_in_possession == 66
 
 
 def test_first_match_possessions_spadl():

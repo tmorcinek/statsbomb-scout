@@ -1,6 +1,8 @@
 """Test script to verify preprocessing flow."""
 
 import numpy as np
+
+import config
 from src.ml.preprocessing import SequencePreprocessor
 from src.data.data_loader import load_statsbomb_socceraction_data
 from src.ml.xthreat import get_default_xt_model
@@ -9,7 +11,6 @@ from src.ml.xthreat import get_default_xt_model
 def test_preprocessing_flow():
     """Test the complete preprocessing pipeline."""
 
-    # Load one match
     print("Loading data...")
     match, events = next(load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282))
 
@@ -25,7 +26,7 @@ def test_preprocessing_flow():
     print(f"Home team ID: {home_team_id}")
 
     # Initialize preprocessor
-    preprocessor = SequencePreprocessor(sequence_length=10, xt_model=get_default_xt_model())
+    preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH, xt_model=get_default_xt_model())
 
     # Test _extract_possessions
     print("\n--- Testing _extract_possessions ---")

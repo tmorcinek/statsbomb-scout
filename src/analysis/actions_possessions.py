@@ -2,10 +2,10 @@ import warnings
 
 import matplotlib.pyplot as plt
 import pandas as pd
-import socceraction.spadl as spadl
 
 from src.analysis.events_possessions import calculate_possession_statistics, calculate_possession_percentiles, plot_possession_distribution, \
     plot_possession_by_team, plot_possession_percentiles
+from src.ml.preprocessing.possessions_extraction import extract_actions_from_events
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 
@@ -34,27 +34,11 @@ def possessions_from_actions(actions_df: pd.DataFrame) -> pd.DataFrame:
 def extract_season_possessions() -> pd.DataFrame:
     def process_match(game_events):
         game, events = game_events
-        actions = spadl.statsbomb.convert_to_actions(events, game['home_team_id'], xy_fidelity_version=2)
-        actions = enrich_actions_with_event_data(actions, events)
-        return possessions_from_actions(actions)
+        return possessions_from_actions(extract_actions_from_events(game, events))
 
     return pd.concat(
         map(process_match, load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282)),
         ignore_index=True
-    )
-
-
-def enrich_actions_with_event_data(actions: pd.DataFrame, events: pd.DataFrame) -> pd.DataFrame:
-    cols_to_use = ['event_id', 'team_name', 'player_name', 'possession', 'type_name']
-
-    return (
-        actions
-        .assign(original_event_id=lambda x: x['original_event_id'].bfill())
-        .merge(
-            events[cols_to_use].rename(columns={'event_id': 'original_event_id'}),
-            on='original_event_id',
-            how='left'
-        )
     )
 
 

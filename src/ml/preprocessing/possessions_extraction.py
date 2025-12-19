@@ -5,8 +5,6 @@ import warnings
 import pandas as pd
 import socceraction.spadl as spadl
 
-from src.analysis.actions_possessions import enrich_actions_with_event_data
-
 warnings.filterwarnings('ignore', category=FutureWarning)
 
 pd.set_option('display.width', 1000)
@@ -19,6 +17,25 @@ PITCH_WIDTH = 68
 """
 type_id 11: shot, 12: shot_penalty, 13: shot_freekick
 """
+
+def extract_actions_from_events(game: pd.Series, events_df: pd.DataFrame) -> pd.DataFrame:
+    actions = spadl.statsbomb.convert_to_actions(events_df, game['home_team_id'], xy_fidelity_version=2)
+    actions = enrich_actions_with_event_data(actions, events_df)
+    return actions
+
+
+def enrich_actions_with_event_data(actions: pd.DataFrame, events: pd.DataFrame) -> pd.DataFrame:
+    cols_to_use = ['event_id', 'team_name', 'player_name', 'possession', 'type_name']
+
+    return (
+        actions
+        .assign(original_event_id=lambda x: x['original_event_id'].bfill())
+        .merge(
+            events[cols_to_use].rename(columns={'event_id': 'original_event_id'}),
+            on='original_event_id',
+            how='left'
+        )
+    )
 
 
 def normalize_pitch(actions: pd.DataFrame, home_team_id: int) -> pd.DataFrame:
@@ -37,11 +54,9 @@ def normalize_pitch(actions: pd.DataFrame, home_team_id: int) -> pd.DataFrame:
 
 
 def extract_possessions(game: pd.Series, events: pd.DataFrame) -> dict[int, pd.DataFrame]:
-    home_team_id = game['home_team_id']
-    actions = spadl.statsbomb.convert_to_actions(events, home_team_id, xy_fidelity_version=2)
-    actions = enrich_actions_with_event_data(actions, events)
+    actions = extract_actions_from_events(game, events)
     # actions = (spadl.add_names(actions))
-    return {pid: normalize_pitch(group, home_team_id) for pid, group in actions.groupby('possession')}
+    return {pid: normalize_pitch(group, game['home_team_id']) for pid, group in actions.groupby('possession')}
 
 
 def extract_possessions_with_shots(game: pd.Series, events: pd.DataFrame) -> dict[int, pd.DataFrame]:

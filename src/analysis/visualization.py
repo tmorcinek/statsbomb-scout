@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from mplsoccer.soccer.pitch import VerticalPitch
 
-from src.analysis.actions_possessions_analysis import extract_possessions_with_shots, extract_possessions_ended_with_goals
+from src.ml.preprocessing.possessions_extraction import extract_possessions_with_shots
 from src.data.data_loader import load_statsbomb_socceraction_data
 
 pd.set_option('display.max_columns', None)
