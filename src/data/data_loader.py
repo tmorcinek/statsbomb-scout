@@ -63,8 +63,8 @@ def load_statsbomb_socceraction_data(root: str, competition_id: int, season_id: 
             continue
 
 
-def load_socceraction_data(SBL: StatsBombLoader, competition_id: int, season_id: int) -> Generator[Tuple[pd.Series, pd.DataFrame], None, None]:
-    games = SBL.games(competition_id, season_id)
+def load_socceraction_data(loader: StatsBombLoader, competition_id: int, season_id: int) -> Generator[Tuple[pd.Series, pd.DataFrame], None, None]:
+    games = loader.games(competition_id, season_id)
     print(f"Found {len(games)} matches in competition {competition_id}, season {season_id}")
 
     for index, game in games.iterrows():
@@ -72,7 +72,7 @@ def load_socceraction_data(SBL: StatsBombLoader, competition_id: int, season_id:
         print(f"Loading events for match {game_id} ({index + 1}/{len(games)})...")
 
         try:
-            yield game, (SBL.events(game_id, load_360=True))
+            yield game, (loader.events(game_id, load_360=True))
         except Exception as e:
             print(f"Warning: Failed to load events for match {game_id}: {e}")
             continue
