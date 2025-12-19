@@ -22,14 +22,8 @@ def sample_game():
 
 
 @pytest.fixture(scope="module")
-def home_team_id(sample_game):
-    match, _ = sample_game
-    return match.get('home_team_id')
-
-
-@pytest.fixture(scope="module")
 def preprocessor():
-    return SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH, xt_model=get_default_xt_model())
+    return SequencePreprocessor(sequence_length=8, xt_model=get_default_xt_model())
 
 
 @pytest.fixture(scope="module")
@@ -39,8 +33,8 @@ def sample_extracted_possession(sample_game, preprocessor):
 
 
 @pytest.fixture(scope="module")
-def sample_extracted_features(preprocessor, home_team_id, sample_extracted_possession):
-    return preprocessor._extract_features(sample_extracted_possession, home_team_id)
+def sample_extracted_features(preprocessor, sample_extracted_possession):
+    return preprocessor._extract_features(sample_extracted_possession)
 
 
 def test_extract_possessions(sample_game, preprocessor):
@@ -71,10 +65,10 @@ def test_extract_possessions(sample_game, preprocessor):
     assert list(first_possession_df.columns) == expected_columns, "Column names do not match!"
 
 
-def test_extract_features(preprocessor, home_team_id, sample_extracted_possession):
+def test_extract_features(preprocessor, sample_extracted_possession):
     assert sample_extracted_possession.iloc[0]['possession'] == 2
 
-    features_df = preprocessor._extract_features(sample_extracted_possession, home_team_id)
+    features_df = preprocessor._extract_features(sample_extracted_possession)
     print(f"Features: \n{features_df}")
 
     assert len(features_df) == 7, "Number of actions does not match!"

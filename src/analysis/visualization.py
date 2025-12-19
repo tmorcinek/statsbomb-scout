@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from mplsoccer.soccer.pitch import VerticalPitch
 
+import config
 from src.ml.preprocessing.possessions_extraction import extract_possessions_with_shots, extract_possessions
 from src.data.data_loader import load_statsbomb_socceraction_data
 
@@ -148,10 +149,11 @@ if __name__ == '__main__':
     possessions = extract_possessions(game, events)
     # possessions = extract_possessions_with_shots(game, events)
     # possessions = extract_possessions_ended_with_goals(game, events)
-    print(f"Total possessions with shots: \n{possessions}")
+    print(f"Total possessions with shots: \n{len(possessions)}")
 
-    # possessions_list = list(possessions.values())
-    possessions_list = [possessions[pid] for pid in [78, 8, 68, 18, 13] if pid in possessions]
+    possessions_list = [possessions[pid] for pid in sorted(possessions.keys()) if len(possessions[pid]) >= config.SEQUENCE_LENGTH]
+    best_possessions = [78, 8, 68, 18, 13]
+    possessions_list = [possessions_list[pid] for pid in best_possessions]
 
     fig = plot_multiple_possessions(possessions_list)
     fig.savefig('data/plot/possessions_best.png', dpi=300, bbox_inches='tight')

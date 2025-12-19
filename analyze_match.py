@@ -70,9 +70,7 @@ def analyze_match_actions(match_id: int, competition_id: int = 55, season_id: in
 
     # Overall match statistics
     print(f"Total sequences analyzed: {len(predicted_values)}")
-    print(".3f")
-    print(".3f")
-    print(".3f")
+    print(f"Sum of all predicted values: {predicted_values.sum():.3f}")
 
     # Find sequences with highest predicted values
     top_indices = np.argsort(predicted_values)[-5:][::-1]  # Top 5
@@ -86,6 +84,7 @@ def analyze_match_actions(match_id: int, competition_id: int = 55, season_id: in
         print(f"   Attention weights: {seq_weights}")
         print(f"   Most important action in sequence: position {max_weight_idx} (weight: {seq_weights[max_weight_idx]:.3f})")
         print()
+
 
     # Visualize attention for top sequence
     if len(top_indices) > 0:

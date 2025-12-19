@@ -20,6 +20,9 @@ def test_first_match_possessions():
 
     assert len(possessions_df) == 111
 
+    at_least_6_actions_in_possession = (possessions_df['length'] >= 6).sum()
+    assert at_least_6_actions_in_possession == 82
+
     at_least_8_actions_in_possession = (possessions_df['length'] >= 8).sum()
     assert at_least_8_actions_in_possession == 71
 
