@@ -48,19 +48,7 @@ def _filter_relevant_events(events) -> pd.DataFrame:
 
 
 def load_statsbomb_socceraction_data(root: str, competition_id: int, season_id: int) -> Generator[Tuple[pd.Series, pd.DataFrame], None, None]:
-    loader = StatsBombLoader(root=root, getter="local")
-    games = loader.games(competition_id, season_id)
-    print(f"Found {len(games)} matches in competition {competition_id}, season {season_id}")
-
-    for index, game in games.iterrows():
-        game_id = game['game_id']
-        print(f"Loading events for match {game_id} ({index + 1}/{len(games)})...")
-
-        try:
-            yield game, (loader.events(game_id, load_360=True))
-        except Exception as e:
-            print(f"Warning: Failed to load events for match {game_id}: {e}")
-            continue
+    yield from load_socceraction_data(StatsBombLoader(root=root, getter="local"), competition_id, season_id)
 
 
 def load_socceraction_data(loader: StatsBombLoader, competition_id: int, season_id: int) -> Generator[Tuple[pd.Series, pd.DataFrame], None, None]:
