@@ -1,6 +1,6 @@
 """Module for loading StatsBomb event data."""
 
-from typing import Generator, Tuple
+from typing import Generator, Tuple, Optional
 
 import pandas as pd
 
@@ -64,3 +64,9 @@ def load_socceraction_data(loader: StatsBombLoader, competition_id: int, season_
         except Exception as e:
             print(f"Warning: Failed to load events for match {game_id}: {e}")
             continue
+
+def load_socceraction_match(root: str, competition_id: int, season_id: int, match_id: Optional[int] = None) -> Tuple[pd.Series, pd.DataFrame]:
+    for match, events in load_statsbomb_socceraction_data(root, competition_id, season_id):
+        if match_id is None or match['game_id'] == match_id:
+            return match, events
+    raise ValueError(f"Match {match_id} not found in competition {competition_id}, season {season_id}")

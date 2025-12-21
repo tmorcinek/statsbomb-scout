@@ -7,8 +7,8 @@ import pandas as pd
 from mplsoccer.soccer.pitch import VerticalPitch
 
 import config
-from src.ml.preprocessing.possessions_extraction import extract_possessions_with_shots, extract_possessions
-from src.data.data_loader import load_statsbomb_socceraction_data
+from src.data.data_loader import load_socceraction_match
+from src.ml.preprocessing.possessions_extraction import extract_possessions
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -144,7 +144,7 @@ def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame], figsi
 
 
 if __name__ == '__main__':
-    game, events = next(load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282))
+    game, events = load_socceraction_match("data/statsbomb/data", 55, 282)
     home_team_id = game['home_team_id']
     possessions = extract_possessions(game, events)
     # possessions = extract_possessions_with_shots(game, events)

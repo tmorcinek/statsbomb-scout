@@ -7,11 +7,11 @@ from src.ml.preprocessing.possessions_extraction import extract_actions_from_eve
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 
-from src.data.data_loader import load_statsbomb_socceraction_data, load_socceraction_data
+from src.data.data_loader import load_socceraction_data, load_socceraction_match
 
 
 def test_first_match_possessions():
-    game, events = next(load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282))
+    game, events = load_socceraction_match("data/statsbomb/data", 55, 282)
 
     actions_df = extract_actions_from_events(game, events)
 

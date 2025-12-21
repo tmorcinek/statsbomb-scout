@@ -1,43 +1,22 @@
 """Script to analyze actions in a specific match using the trained attention_lstm model."""
 
-import numpy as np
-import pandas as pd
-from tensorflow import keras
 import matplotlib.pyplot as plt
-from typing import Tuple
+import numpy as np
+from tensorflow import keras
 
-from src.data.data_loader import load_statsbomb_data, load_statsbomb_socceraction_data
+import config
+from src.data.data_loader import load_socceraction_match
+from src.ml.models.attention_lstm import AttentionLayer
 from src.ml.preprocessing.sequence import SequencePreprocessor
 from src.ml.xthreat import get_default_xt_model
-from src.ml.models.attention_lstm import AttentionLayer
-import config
 
 
-def load_single_match(competition_id: int, season_id: int, match_id: int) -> Tuple[pd.Series, pd.DataFrame]:
-    for match, events in load_statsbomb_socceraction_data("data/statsbomb/data", competition_id, season_id):
-        if match['game_id'] == match_id:
-            return match, events
-    raise ValueError(f"Match {match_id} not found in competition {competition_id}, season {season_id}")
-
-
-def analyze_match_actions(match_id: int, competition_id: int = 55, season_id: int = 282,
-                         model_path: str = "models/attention_lstm/best_model.keras"):
-    """
-    Analyze actions in a specific match using the trained attention_lstm model.
-
-    Args:
-        match_id: StatsBomb match ID
-        competition_id: Competition ID (default: Premier League 2020/21)
-        season_id: Season ID (default: Premier League 2020/21)
-        model_path: Path to trained model
-    """
+def analyze_match_actions(match_id: int, competition_id: int = 55, season_id: int = 282, model_path: str = "models/attention_lstm/best_model.keras"):
     print(f"Analyzing match {match_id}...")
 
-    # 1. Load match data
     print("1. Loading match data...")
-    match_info, events = load_single_match(competition_id, season_id, match_id)
+    match_info, events = load_socceraction_match("data/statsbomb/data", competition_id, season_id, match_id)
     print(f"Match info: {match_info}")
-    # print(f"Match: {match_info['home_team']} vs {match_info['away_team']}")
     print(f"Events loaded: {len(events)}")
 
     # 2. Preprocess into sequences
@@ -80,11 +59,10 @@ def analyze_match_actions(match_id: int, competition_id: int = 55, season_id: in
         seq_weights = attention_weights[idx]
         max_weight_idx = np.argmax(seq_weights)
 
-        print(f"{i+1}. Sequence {idx}: Value = {seq_value:.3f}")
+        print(f"{i + 1}. Sequence {idx}: Value = {seq_value:.3f}")
         print(f"   Attention weights: {seq_weights}")
         print(f"   Most important action in sequence: position {max_weight_idx} (weight: {seq_weights[max_weight_idx]:.3f})")
         print()
-
 
     # Visualize attention for top sequence
     if len(top_indices) > 0:
