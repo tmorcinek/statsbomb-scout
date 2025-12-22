@@ -25,19 +25,10 @@ class SequencePreprocessor:
         self.action_type_mapping = {}
 
     def _extract_possessions(self, events_df: pd.DataFrame) -> List[pd.DataFrame]:
-        possessions = []
-
-        for possession_id, possession_group in events_df.groupby("possession"):
-            # possession_team = possession_group['possession_team_name'].iloc[0]
-
-            # Filter events to only include actions by the possessing team
-            # team_events = possession_group[possession_group['team_name'] == possession_team]
-
-            # Only include possessions with minimum number of events
-            if len(possession_group) >= self.sequence_length:
-                possessions.append(possession_group.copy())
-
-        return possessions
+        return [
+            possession_group
+            for possession_id, possession_group in events_df.groupby("possession") if len(possession_group) >= self.sequence_length
+        ]
 
     def _extract_features(self, possession: pd.DataFrame) -> pd.DataFrame:
         """Extract features from possession events, converting to SPADL and adding computed features."""
@@ -50,7 +41,7 @@ class SequencePreprocessor:
 
         actions["time_diff"] = actions["time_seconds"].diff().fillna(0.0)
 
-        subset = possession[['event_id', 'duration', 'under_pressure', 'counterpress']].copy()
+        subset = possession[['event_id', 'duration', 'under_pressure', 'counterpress', 'possession']].copy()
         subset['xG'] = calculate_xg_values(possession)
         actions = actions.merge(subset, left_on='original_event_id', right_on='event_id', how='left').drop(columns='event_id')
         actions = actions.fillna({'duration': 0.0, 'under_pressure': False, 'counterpress': False, 'xG': 0.0})

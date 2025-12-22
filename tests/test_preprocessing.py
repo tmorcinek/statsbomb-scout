@@ -89,7 +89,7 @@ def test_extract_features(preprocessor, sample_extracted_possession):
     print(f"Features: \n{features_df}")
 
     assert len(features_df) == 7, "Number of actions does not match!"
-    assert len(features_df.columns) == 24, "Number of features does not match!"
+    assert len(features_df.columns) == 25, "Number of features does not match!"
 
     expected_columns = ['game_id',
                         'original_event_id',
@@ -113,6 +113,7 @@ def test_extract_features(preprocessor, sample_extracted_possession):
                         'duration',
                         'under_pressure',
                         'counterpress',
+                        'possession',
                         'xG',
                         'xT']
     assert list(features_df.columns) == expected_columns, "Column names do not match!"
