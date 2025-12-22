@@ -1,7 +1,7 @@
 """Module for preprocessing event data into sequences."""
 
 import warnings
-from typing import List, Tuple, Generator, Union
+from typing import List, Tuple, Generator, Union, Iterable
 
 import numpy as np
 import pandas as pd
@@ -148,23 +148,17 @@ class SequencePreprocessor:
 
         for possession in possessions:
             features = self._extract_features(possession)
-            # print(f"  → Possession {possession['possession'].iloc[0]}: {len(features)} actions")
             if len(features) < self.sequence_length:
-                # print(f"  → Possession too short, consist of only {len(features)} actions")
                 continue
 
             normalized_features = self._normalize_features(features)
-            # print(f"  →  Normalized features shape: {normalized_features.shape}")
 
             sequence = self._create_simple_sequence(normalized_features)
-            # print(f"  →  Created sequence shape: {sequence.shape}")
 
             labels = self._create_label(features.tail(self.sequence_length))
-            # print(f"  →  Created label: {labels}")
 
             all_sequences.append(sequence)
             all_labels.append(labels)
-            # print(f"Added sequence {sequence.shape}, label {labels}")
 
         X = np.concatenate(all_sequences) if all_sequences else np.array([]).reshape(0, self.sequence_length, 0)
         y = np.concatenate(all_labels) if all_labels else np.array([])
@@ -173,20 +167,11 @@ class SequencePreprocessor:
 
         return X, y
 
-    def process_matches(self, matches: Union[Generator[Tuple[pd.Series, pd.DataFrame], None, None], List[Tuple[pd.Series, pd.DataFrame]]]) \
-            -> Tuple[np.ndarray, np.ndarray]:
-        """Process multiple matches into sequences, returning (X, y) with shapes (n_sequences, sequence_length, ~38) and (n_sequences,)."""
-        all_X = []
-        all_y = []
+    def process_matches(self, matches: Iterable[Tuple[pd.Series, pd.DataFrame]]) -> Tuple[np.ndarray, np.ndarray]:
+        all_X, all_y = zip(*(self.process_match(match["game_id"], events_df) for match, events_df in matches))
 
-        for match, events_df in matches:
-            X_match, y_match = self.process_match(match['game_id'], events_df)
-            all_X.append(X_match)
-            all_y.append(y_match)
-
-        X = np.concatenate(all_X) if all_X else np.array([])
-        y = np.concatenate(all_y) if all_y else np.array([])
+        X = np.concatenate(all_X)
+        y = np.concatenate(all_y)
 
         print(f"\nTotal sequences from all matches: {len(X)}")
-
         return X, y

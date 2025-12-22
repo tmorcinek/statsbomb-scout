@@ -6,8 +6,8 @@ Ten plik zawiera opis zadań do wykonania oraz plan rozwoju projektu. Projekt do
 
 ## Zadania do wykonania
 
-1. **Napisanie testów niezbędnych do optymalizacji implementacji obiektu SequencePreprocessor**  
-   - Opis: Stworzenie kompleksowych testów jednostkowych i integracyjnych dla klasy SequencePreprocessor, aby umożliwić bezpieczne optymalizacje kodu.
+1. ~~**Napisanie testów niezbędnych do optymalizacji implementacji obiektu SequencePreprocessor**~~  
+   - ~~Opis: Stworzenie kompleksowych testów jednostkowych i integracyjnych dla klasy SequencePreprocessor, aby umożliwić bezpieczne optymalizacje kodu.~~
 
 2. **Refaktoryzacja SequencePreprocessor - uproszczenie i zmiana implementacji funkcji _extract_possessions**  
    - Opis: Przepisanie funkcji _extract_possessions w celu uproszczenia logiki, usunięcia komentarzy i poprawy wydajności.
