@@ -1,11 +1,11 @@
 """Test script to verify preprocessing flow."""
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import pytest
 import socceraction.spadl as spadl
 
-import config
 from src.analysis.visualization import plot_possession_actions
 from src.data.data_loader import load_statsbomb_socceraction_data
 from src.ml.preprocessing.sequence import SequencePreprocessor
@@ -23,7 +23,7 @@ def sample_game():
 
 @pytest.fixture(scope="module")
 def preprocessor():
-    return SequencePreprocessor(sequence_length=8, xt_model=get_default_xt_model())
+    return SequencePreprocessor(sequence_length=6, xt_model=get_default_xt_model())
 
 
 @pytest.fixture(scope="module")
@@ -35,6 +35,11 @@ def sample_extracted_possession(sample_game, preprocessor):
 @pytest.fixture(scope="module")
 def sample_extracted_features(preprocessor, sample_extracted_possession):
     return preprocessor._extract_features(sample_extracted_possession)
+
+
+@pytest.fixture(scope="module")
+def sample_normalized_features(preprocessor, sample_extracted_features):
+    return preprocessor._normalize_features(sample_extracted_features)
 
 
 def test_extract_possessions(sample_game, preprocessor):
@@ -50,7 +55,7 @@ def test_extract_possessions(sample_game, preprocessor):
 
     # Test _extract_possessions
     possessions_df = preprocessor._extract_possessions(events)
-    assert len(possessions_df) == 89, "Number of possessions_df does not match!"
+    assert len(possessions_df) == 95, "Number of possessions_df does not match!"
 
     # Test _extract_features
     first_possession_df = possessions_df[0]
@@ -74,6 +79,32 @@ def test_extract_features(preprocessor, sample_extracted_possession):
     assert len(features_df) == 7, "Number of actions does not match!"
     assert len(features_df.columns) == 24, "Number of features does not match!"
 
+    expected_columns = ['game_id',
+                        'original_event_id',
+                        'period_id',
+                        'time_seconds',
+                        'team_id',
+                        'player_id',
+                        'start_x',
+                        'start_y',
+                        'end_x',
+                        'end_y',
+                        'type_id',
+                        'result_id',
+                        'bodypart_id',
+                        'action_id',
+                        'dx',
+                        'dy',
+                        'distance',
+                        'angle',
+                        'time_diff',
+                        'duration',
+                        'under_pressure',
+                        'counterpress',
+                        'xG',
+                        'xT']
+    assert list(features_df.columns) == expected_columns, "Column names do not match!"
+
 
 def test_extracted_features(sample_game, sample_extracted_features):
     actions = (spadl.add_names(sample_extracted_features))
@@ -81,8 +112,27 @@ def test_extracted_features(sample_game, sample_extracted_features):
     actions['possession'] = 2
 
     assert len(sample_extracted_features) == 7, "Number of actions does not match!"
-    plot_possession_actions(actions)
-    plt.show()
+
+    fig = plot_possession_actions(actions)
+    fig.savefig('data/test/possession_2.png', dpi=300, bbox_inches='tight')
+    # plt.show()
+
+
+def test_normalize_features(preprocessor, sample_extracted_features):
+    normalized_features = preprocessor._normalize_features(sample_extracted_features)
+    assert normalized_features.shape == (7, 45), "Normalized features shape does not match!"
+
+    expected_normalized_features_df = pd.read_csv('data/test/normalized_features_df.csv')
+    assert np.allclose(expected_normalized_features_df.values, normalized_features), "Normalized features do not match expected values!"
+
+
+def test_create_simple_sequence(preprocessor, sample_normalized_features):
+    assert sample_normalized_features.shape == (7, 45), "Normalized features shape does not match!"
+
+    sequence = preprocessor._create_simple_sequence(sample_normalized_features)
+    assert sequence.shape == (1, 6, 45), "Normalized features shape does not match!"
+
+    assert np.allclose(sample_normalized_features[-6:], sequence[0]), "Normalized features do not match expected values!"
 
 
 def test_flow(sample_extracted_features):
