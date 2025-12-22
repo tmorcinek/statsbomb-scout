@@ -1,5 +1,5 @@
 """Test script to verify preprocessing flow."""
-
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
@@ -166,10 +166,14 @@ def test_create_label_from_shot(preprocessor, possessions):
     shot_possession = possessions[13]
     shot_features = preprocessor._extract_features(shot_possession)
 
-    # actions = (spadl.add_names(shot_features))
-    # actions["team_name"] = np.where(actions["team_id"] == 941, "Netherlands", "England")
-    # actions['possession'] = shot_possession['possession'].iloc[0]
-    # print(f"Shot Possession Actions: \n{actions}")
+    # print(shot_features)
+
+    actions = (spadl.add_names(shot_features))
+    actions["team_name"] = np.where(actions["team_id"] == 941, "Netherlands", "England")
+    actions['possession'] = shot_possession['possession'].iloc[0]
+    print(f"Shot Possession Actions: \n{actions}")
+    plot_possession_actions(actions)
+    plt.show()
 
     features = shot_features.tail(SEQUENCE_LENGTH)
     labels = preprocessor._create_label(features)
@@ -203,7 +207,16 @@ def test_create_label_from_goal(preprocessor, possessions):
 def test_process_match(sample_game, preprocessor):
     match, events = sample_game
     match_id = match.get('game_id', match.name)
+
     X, y = preprocessor.process_match(match_id, events)
+
+    expected_normalized_features_df = pd.read_csv('data/test/normalized_features_df.csv').tail(SEQUENCE_LENGTH)
+    assert np.allclose(expected_normalized_features_df.values, X[0]), "Normalized features do not match expected values!"
+
+    assert y[0] == 0.00789534, "Y shape does not match!"
+    assert y[8] == 1.0, "Y shape does not match!"
+    assert y[12] == 0.028932061, "Y shape does not match!"
+
     assert X.shape == (82, 6, 45), "X shape does not match!"
     assert y.shape == (82,), "y shape does not match!"
 
