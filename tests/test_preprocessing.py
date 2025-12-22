@@ -29,7 +29,7 @@ def preprocessor():
 
 @pytest.fixture(scope="module")
 def possessions(sample_game, preprocessor):
-    match, events = sample_game
+    _, events = sample_game
     return preprocessor._extract_possessions(events)
 
 
@@ -197,3 +197,11 @@ def test_create_label_from_goal(preprocessor, possessions):
 
     assert labels.shape == (1,), "Labels shape does not match!"
     assert labels[0] == 1.0, "Label value does not match!"
+
+
+def test_process_match(sample_game, preprocessor):
+    match, events = sample_game
+    match_id = match.get('game_id', match.name)
+    X, y = preprocessor.process_match(match_id, events)
+    assert X.shape == (82, 6, 45), "X shape does not match!"
+    assert y.shape == (82,), "y shape does not match!"
