@@ -1,6 +1,5 @@
 """Test script to verify preprocessing flow."""
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
@@ -10,6 +9,8 @@ from src.analysis.visualization import plot_possession_actions
 from src.data.data_loader import load_statsbomb_socceraction_data
 from src.ml.preprocessing.sequence import SequencePreprocessor
 from src.ml.xthreat import get_default_xt_model
+
+SEQUENCE_LENGTH = 6
 
 pd.set_option('display.width', 1000)
 pd.set_option('display.max_rows', None)
@@ -23,18 +24,29 @@ def sample_game():
 
 @pytest.fixture(scope="module")
 def preprocessor():
-    return SequencePreprocessor(sequence_length=6, xt_model=get_default_xt_model())
+    return SequencePreprocessor(sequence_length=SEQUENCE_LENGTH, xt_model=get_default_xt_model())
 
 
 @pytest.fixture(scope="module")
-def sample_extracted_possession(sample_game, preprocessor):
+def possessions(sample_game, preprocessor):
     match, events = sample_game
-    return preprocessor._extract_possessions(events)[0]
+    return preprocessor._extract_possessions(events)
+
+
+@pytest.fixture(scope="module")
+def sample_extracted_possession(possessions):
+    return possessions[0]
 
 
 @pytest.fixture(scope="module")
 def sample_extracted_features(preprocessor, sample_extracted_possession):
     return preprocessor._extract_features(sample_extracted_possession)
+
+
+@pytest.fixture(scope="module")
+def shot_possession(preprocessor, possessions):
+    possessions_ = possessions[17]
+    return preprocessor._extract_features(possessions_)
 
 
 @pytest.fixture(scope="module")
@@ -135,67 +147,53 @@ def test_create_simple_sequence(preprocessor, sample_normalized_features):
     assert np.allclose(sample_normalized_features[-6:], sequence[0]), "Normalized features do not match expected values!"
 
 
-def test_flow(sample_extracted_features):
-    return
-    if possessions_df:
-        print(f"Features DataFrame shape: {features_df.shape}")
-        print(f"Columns: {list(features_df.columns)}")
-        print(f"First row features:\n{features_df.iloc[0][['start_x', 'start_y', 'distance', 'angle', 'time_diff']]}")
+def test_create_label(preprocessor, sample_extracted_features):
+    features = sample_extracted_features.tail(SEQUENCE_LENGTH)
+    labels = preprocessor._create_label(features)
 
-    # Test _normalize_features
-    print("\n--- Testing _normalize_features ---")
-    if possessions_df:
-        normalized = preprocessor._normalize_features(features_df)
-        print(f"Normalized features shape: {normalized.shape}")
-        print(f"Feature range: min={normalized.min():.3f}, max={normalized.max():.3f}")
-        print(f"First action features (first 10): {normalized[0][:10]}")
+    xg_sum = features['xG'].sum()
+    assert xg_sum == 0.0, "xG sum does not match!"
 
-    # Test _create_sequences (sliding window)
-    print("\n--- Testing _create_sequences ---")
-    sequences = None
-    if possessions_df:
-        try:
-            sequences = preprocessor._create_sequences(normalized)
-            print(f"Sequences shape: {sequences.shape}")
-            print(f"Expected: ({len(normalized) - preprocessor.sequence_length + 1}, {preprocessor.sequence_length}, {normalized.shape[1]})")
+    xt_sum = features['xT'].sum()
+    assert xt_sum == 0.00789534, "xT sum does not match!"
 
-            if len(sequences) > 0:
-                print(f"First sequence shape: {sequences[0].shape}")
-                print(f"First sequence first action (first 5 features): {sequences[0][0][:5]}")
-        except ValueError as e:
-            # Possession too short to create sliding windows — that's acceptable for some possessions_df
-            print(f"_create_sequences raised: {e}")
+    assert labels.shape == (1,), "Labels shape does not match!"
+    assert labels[0] == xt_sum, "Label value does not match!"
 
-    # Test _create_simple_sequence and _create_label (consistent API usage)
-    print("\n--- Testing _create_simple_sequence and _create_label ---")
-    if possessions_df:
-        try:
-            simple_seq = preprocessor._create_simple_sequence(normalized)
-            print(f"Simple sequence shape: {simple_seq.shape}")
-            label = preprocessor._create_label(features_df.tail(preprocessor.sequence_length))
-            print(f"Label: {label}")
-        except ValueError as e:
-            print(f"Simple sequence/label creation raised: {e}")
 
-    # Test full pipeline
-    print("\n--- Testing process_match ---")
-    X, y = preprocessor.process_match(match_id, home_team_id, events)
-    print(f"X shape: {X.shape}")
-    print(f"y shape: {y.shape}")
-    print(f"X dtype: {X.dtype}")
-    print(f"y dtype: {y.dtype}")
+def test_create_label_from_shot(preprocessor, possessions):
+    shot_possession = possessions[13]
+    shot_features = preprocessor._extract_features(shot_possession)
 
-    # Validate shapes
-    print("\n--- Validation ---")
-    assert X.shape[0] == y.shape[0], "Number of sequences and labels must match!"
-    assert X.shape[1] == preprocessor.sequence_length, f"Sequence length must be {preprocessor.sequence_length}!"
-    assert X.shape[2] > 0, "Feature dimension must be > 0!"
-    print("✅ All validations passed!")
+    # actions = (spadl.add_names(shot_features))
+    # actions["team_name"] = np.where(actions["team_id"] == 941, "Netherlands", "England")
+    # actions['possession'] = shot_possession['possession'].iloc[0]
+    # print(f"Shot Possession Actions: \n{actions}")
 
-    # Do not return values from tests (pytest warns if a test returns a value)
-    # The test assertions above are sufficient.
+    features = shot_features.tail(SEQUENCE_LENGTH)
+    labels = preprocessor._create_label(features)
 
-# if __name__ == "__main__":
-# X, y = test_preprocessing_flow()
-# print(f"\n🎉 Preprocessing flow works correctly!")
-# print(f"Generated {len(X)} sequences with {X.shape[2]} features each")
+    xg_sum = features['xG'].sum()
+    assert xg_sum == 0.028932061, "xG sum does not match!"
+
+    assert xg_sum == shot_features.iloc[-2]['xG'], "xG sum does not match!"
+
+    assert labels.shape == (1,), "Labels shape does not match!"
+    assert labels[0] == xg_sum, "Label value does not match!"
+
+
+def test_create_label_from_goal(preprocessor, possessions):
+    goal_possession = possessions[8]
+    shot_features = preprocessor._extract_features(goal_possession)
+
+    features = shot_features.tail(SEQUENCE_LENGTH)
+    labels = preprocessor._create_label(features)
+
+    xg_sum = features['xG'].sum()
+    assert xg_sum == 1.0, "xG sum does not match!"
+
+    xt_sum = features['xT'].sum()
+    assert xt_sum == 0.004536809999999999, "xT sum does not match!"
+
+    assert labels.shape == (1,), "Labels shape does not match!"
+    assert labels[0] == 1.0, "Label value does not match!"
