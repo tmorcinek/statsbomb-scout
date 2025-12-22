@@ -40,22 +40,7 @@ class SequencePreprocessor:
         return possessions
 
     def _extract_features(self, possession: pd.DataFrame) -> pd.DataFrame:
-        """
-        Extract features from possession events.
-
-        Converts StatsBomb events to SPADL format and adds computed features:
-        - Geometric: dx, dy, distance, angle
-        - Temporal: time_diff between actions
-        - Contextual: duration, under_pressure, counterpress
-        - Valuations: xG (expected goals) and xT (expected threat)
-
-        Args:
-            possession: DataFrame with StatsBomb possession events
-            home_team_id: Home team ID (required for SPADL conversion)
-
-        Returns:
-            DataFrame with SPADL actions and computed features (not normalized)
-        """
+        """Extract features from possession events, converting to SPADL and adding computed features."""
         actions = spadl.statsbomb.convert_to_actions(possession, possession.iloc[0]['team_id'], xy_fidelity_version=2)
 
         actions["dx"] = actions["end_x"] - actions["start_x"]
@@ -143,75 +128,26 @@ class SequencePreprocessor:
         ], axis=1).astype(np.float32)
 
     def _create_sequences(self, features: np.ndarray) -> np.ndarray:
-        """
-        Create overlapping sequences using sliding window.
-
-        Example: 7 actions with sequence_length=3 creates 5 sequences:
-            [A1,A2,A3], [A2,A3,A4], [A3,A4,A5], [A4,A5,A6], [A5,A6,A7]
-
-        Args:
-            features: Feature array of shape (n_actions, n_features)
-
-        Returns:
-            Array of shape (n_sequences, sequence_length, n_features)
-
-        Raises:
-            ValueError: If features has fewer rows than sequence_length
-        """
+        """Create overlapping sequences using sliding window, returning shape (n_sequences, sequence_length, n_features)."""
         if len(features) < self.sequence_length:
             raise ValueError(f"Insufficient number of actions ({len(features)}) for sequence length {self.sequence_length}.")
 
         return np.lib.stride_tricks.sliding_window_view(features, (self.sequence_length, features.shape[1])).squeeze(1)
 
     def _create_simple_sequence(self, features: np.ndarray) -> np.ndarray:
-        """
-        Create single sequence from last N actions.
-
-        Args:
-            features: Feature array of shape (n_actions, n_features)
-
-        Returns:
-            Array of shape (1, sequence_length, n_features)
-
-        Raises:
-            ValueError: If features has fewer rows than sequence_length
-        """
+        """Create single sequence from last N actions, returning shape (1, sequence_length, n_features)."""
         if len(features) < self.sequence_length:
             raise ValueError(f"Insufficient number of actions ({len(features)}) for sequence length {self.sequence_length}.")
 
         return features[-self.sequence_length:].reshape(1, self.sequence_length, -1)
 
     def _create_label(self, actions_df: pd.DataFrame) -> np.ndarray:
-        """
-        Create label for possession by comparing total xG and xT.
-        """
+        """Create label for possession by comparing total xG and xT."""
         total_xg = actions_df['xG'].sum()
         total_xt = actions_df['xT'].sum()
         return np.array([max(total_xg, total_xt)])
 
-    def process_match(self, match_id: int, home_team_id: int, events_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Process single match into ML-ready sequences.
-
-        Pipeline:
-        1. Extract possessions (filter by team, minimum length)
-        2. For each possession:
-           a. Extract features (SPADL + geometry + xG + xT)
-           b. Normalize features
-           c. Create sequence (last N actions)
-           d. Create label (max of summed xG and summed xT)
-        3. Concatenate all sequences
-
-        Args:
-            match_id: Match ID (for logging)
-            home_team_id: Home team ID (required for SPADL conversion)
-            events_df: DataFrame with StatsBomb events
-
-        Returns:
-            Tuple (X, y) where:
-                - X: sequences with shape (n_possessions, sequence_length, ~38)
-                - y: labels with shape (n_possessions,)
-        """
+    def process_match(self, match_id: int, events_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
         print(f"→Processing match {match_id}: {len(events_df)} events")
 
         possessions = self._extract_possessions(events_df)
@@ -246,24 +182,14 @@ class SequencePreprocessor:
 
         return X, y
 
-    def process_matches(self, matches: Union[Generator[Tuple[pd.Series, pd.DataFrame], None, None], List[Tuple[pd.Series, pd.DataFrame]]]) -> Tuple[
-        np.ndarray, np.ndarray]:
-        """
-        Process multiple matches into sequences.
-
-        Args:
-            matches: Generator or list of (match, events_df) tuples
-
-        Returns:
-            Tuple (X, y) where:
-                - X: all sequences with shape (n_sequences, sequence_length, ~38)
-                - y: all labels with shape (n_sequences,)
-        """
+    def process_matches(self, matches: Union[Generator[Tuple[pd.Series, pd.DataFrame], None, None], List[Tuple[pd.Series, pd.DataFrame]]]) \
+            -> Tuple[np.ndarray, np.ndarray]:
+        """Process multiple matches into sequences, returning (X, y) with shapes (n_sequences, sequence_length, ~38) and (n_sequences,)."""
         all_X = []
         all_y = []
 
         for match, events_df in matches:
-            X_match, y_match = self.process_match(match['game_id'], match['home_team_id'], events_df)
+            X_match, y_match = self.process_match(match['game_id'], events_df)
             all_X.append(X_match)
             all_y.append(y_match)
 

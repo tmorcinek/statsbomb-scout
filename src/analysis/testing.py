@@ -1,9 +1,12 @@
 import warnings
 
+import pytest
 import socceraction.spadl as spadl
+from matplotlib import pyplot as plt
 
 from src.analysis.actions_possessions import possessions_from_actions
-from src.ml.preprocessing.possessions_extraction import extract_actions_from_events
+from src.analysis.visualization import plot_possession_actions
+from src.ml.preprocessing.possessions_extraction import extract_actions_from_events, extract_possessions
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 
@@ -48,3 +51,43 @@ def test_first_match_possessions_spadl():
 
     print(f"Event columns: {len(df_actions)}")
     print(f"Total events: \n{df_actions.head(80)}\n")
+
+
+def test_first_possession_england():
+    game, events = load_socceraction_match("data/statsbomb/data", 55, 282)
+
+    possessions = extract_possessions(game, events)
+
+    england_first_possession = possessions[2]
+
+    first_action = england_first_possession.iloc[0]
+
+    assert first_action['team_name'] == 'England'
+
+    assert first_action['start_x'] == 52.456250000000004  # placeholder
+    assert first_action['start_y'] == 34.0425
+    assert first_action['end_x'] == 22.443749999999994
+    assert first_action['end_y'] == 38.7175
+
+    plot_possession_actions(england_first_possession)
+    plt.show()
+
+
+def test_possession_netherlands():
+    game, events = load_socceraction_match("data/statsbomb/data", 55, 282)
+
+    possessions = extract_possessions(game, events)
+
+    england_first_possession = possessions[11]
+
+    first_action = england_first_possession.iloc[0]
+
+    assert first_action['team_name'] == 'Netherlands'
+
+    assert first_action['start_x'] == pytest.approx(8.0062, abs=1e-4)
+    assert first_action['start_y'] == pytest.approx(24.6925, abs=1e-4)
+    assert first_action['end_x'] == pytest.approx(18.4187, abs=1e-4)
+    assert first_action['end_y'] == pytest.approx(39.1425, abs=1e-4)
+
+    plot_possession_actions(england_first_possession)
+    plt.show()

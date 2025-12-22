@@ -11,8 +11,6 @@ pd.set_option('display.width', 1000)
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
 
-PITCH_LENGTH = 105
-PITCH_WIDTH = 68
 
 """
 type_id 11: shot, 12: shot_penalty, 13: shot_freekick
@@ -43,12 +41,12 @@ def normalize_pitch(actions: pd.DataFrame, home_team_id: int) -> pd.DataFrame:
         return actions
 
     # Rotate start position
-    actions.loc[:, 'start_x'] = PITCH_LENGTH - actions['start_x']
-    actions.loc[:, 'start_y'] = PITCH_WIDTH - actions['start_y']
+    actions.loc[:, 'start_x'] = spadl.config.field_length - actions['start_x']
+    actions.loc[:, 'start_y'] = spadl.config.field_width - actions['start_y']
 
     # Rotate end position
-    actions.loc[:, 'end_x'] = PITCH_LENGTH - actions['end_x']
-    actions.loc[:, 'end_y'] = PITCH_WIDTH - actions['end_y']
+    actions.loc[:, 'end_x'] = spadl.config.field_length - actions['end_x']
+    actions.loc[:, 'end_y'] = spadl.config.field_width - actions['end_y']
 
     return actions
 

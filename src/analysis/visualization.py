@@ -4,6 +4,7 @@ from typing import Optional
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import socceraction.spadl.config as spadl_config
 from mplsoccer.soccer.pitch import VerticalPitch
 
 import config
@@ -14,17 +15,15 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_colwidth', None)
 
-PITCH_LENGTH = 105
-PITCH_WIDTH = 68
 
 
 def plot_possession_actions(possession_actions: pd.DataFrame, ax=None, figsize: tuple = (10, 8)) -> Optional[plt.Figure]:
     # If no axis provided, create a new figure
     if ax is None:
-        pitch = VerticalPitch(pitch_type='custom', pitch_length=PITCH_LENGTH, pitch_width=PITCH_WIDTH, pitch_color='white', line_color='black')
+        pitch = VerticalPitch(pitch_type='custom', pitch_length=spadl_config.field_length, pitch_width=spadl_config.field_width, pitch_color='white', line_color='black')
         fig, ax = pitch.draw(figsize=figsize)
     else:
-        pitch = VerticalPitch(pitch_type='custom', pitch_length=PITCH_LENGTH, pitch_width=PITCH_WIDTH, pitch_color='white', line_color='black')
+        pitch = VerticalPitch(pitch_type='custom', pitch_length=spadl_config.field_length, pitch_width=spadl_config.field_width, pitch_color='white', line_color='black')
         fig = None
 
     # Get team and color information
@@ -131,7 +130,7 @@ def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame], figsi
         axes = axes.flatten().tolist()
 
     for plot_idx, possession_actions in enumerate(possession_actions_list):
-        pitch = VerticalPitch(pitch_type='custom', pitch_length=PITCH_LENGTH, pitch_width=PITCH_WIDTH, pitch_color='white', line_color='black')
+        pitch = VerticalPitch(pitch_type='custom', pitch_length=spadl_config.field_length, pitch_width=spadl_config.field_width, pitch_color='white', line_color='black')
         pitch.draw(ax=axes[plot_idx])
 
         plot_possession_actions(possession_actions, ax=axes[plot_idx])
