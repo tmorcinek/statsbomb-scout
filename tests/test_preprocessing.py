@@ -213,6 +213,9 @@ def test_process_match(sample_game, preprocessor):
     expected_normalized_features_df = pd.read_csv('data/test/normalized_features_df.csv').tail(SEQUENCE_LENGTH)
     assert np.allclose(expected_normalized_features_df.values, X[0]), "Normalized features do not match expected values!"
 
+    test_y = pd.read_csv('data/test/test_y.csv')
+    assert np.allclose(y, test_y['values'].values), "Y values do not match!"
+
     assert y[0] == 0.00789534, "Y shape does not match!"
     assert y[8] == 1.0, "Y shape does not match!"
     assert y[12] == 0.028932061, "Y shape does not match!"
