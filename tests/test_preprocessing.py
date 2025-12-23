@@ -139,6 +139,15 @@ def test_normalize_features(preprocessor, sample_extracted_features):
     assert np.allclose(expected_normalized_features_df.values, normalized_features), "Normalized features do not match expected values!"
 
 
+def test_normalize_features_goal(preprocessor, possessions):
+    features = preprocessor._extract_features(possessions[8])
+    normalized_features = preprocessor._normalize_features(features)
+    assert normalized_features.shape == (20, 45), "Normalized features shape does not match!"
+
+    expected_normalized_features_df = pd.read_csv('data/test/normalized_features_8.csv')
+    assert np.allclose(expected_normalized_features_df.values, normalized_features), "Normalized features do not match expected values!"
+
+
 def test_create_simple_sequence(preprocessor, sample_normalized_features):
     assert sample_normalized_features.shape == (7, 45), "Normalized features shape does not match!"
 
