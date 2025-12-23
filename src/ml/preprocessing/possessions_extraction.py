@@ -5,6 +5,8 @@ import warnings
 import pandas as pd
 import socceraction.spadl as spadl
 
+from src.ml.action_valuation import calculate_xg_values
+
 warnings.filterwarnings('ignore', category=FutureWarning)
 
 pd.set_option('display.width', 1000)
@@ -23,8 +25,9 @@ def extract_actions_from_events(game: pd.Series, events_df: pd.DataFrame) -> pd.
 
 
 def enrich_actions_with_event_data(actions: pd.DataFrame, events: pd.DataFrame) -> pd.DataFrame:
-    cols_to_use = ['event_id', 'team_name', 'player_name', 'possession', 'type_name']
-
+    events['xG'] = calculate_xg_values(events)
+    cols_to_use = ['event_id', 'team_name', 'player_name', 'possession', 'type_name',
+                   'duration', 'under_pressure', 'counterpress', 'xG']
     return (
         actions
         .assign(original_event_id=lambda x: x['original_event_id'].bfill())

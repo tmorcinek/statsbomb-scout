@@ -1,15 +1,15 @@
 """Module for preprocessing event data into sequences."""
 
 import warnings
-from typing import List, Tuple, Generator, Union, Iterable
+from typing import Tuple, Iterable
 
 import numpy as np
 import pandas as pd
-import socceraction.spadl as spadl
 import socceraction.spadl.config as spadl_config
 from socceraction.xthreat import ExpectedThreat
 
-from src.ml.action_valuation import calculate_xt_values, calculate_xg_values
+from src.ml.action_valuation import calculate_xt_values
+from src.ml.preprocessing.possessions_extraction import extract_possessions
 from src.ml.xthreat import get_default_xt_model
 
 warnings.filterwarnings('ignore', category=FutureWarning, module='socceraction')
@@ -24,31 +24,24 @@ class SequencePreprocessor:
         self.xt_model = xt_model
         self.action_type_mapping = {}
 
-    def _extract_possessions(self, events_df: pd.DataFrame) -> List[pd.DataFrame]:
-        return [
-            possession_group
-            for possession_id, possession_group in events_df.groupby("possession") if len(possession_group) >= self.sequence_length
-        ]
+    def _extract_actions(self, game: pd.Series, events_df: pd.DataFrame) -> dict[int, pd.DataFrame]:
+        return {
+            pid: df
+            for pid, df in extract_possessions(game, events_df).items() if len(df) >= self.sequence_length
+        }
 
-    def _extract_features(self, possession: pd.DataFrame) -> pd.DataFrame:
-        """Extract features from possession events, converting to SPADL and adding computed features."""
-        actions = spadl.statsbomb.convert_to_actions(possession, possession.iloc[0]['team_id'], xy_fidelity_version=2)
+    def _update_action(self, action: pd.DataFrame) -> pd.DataFrame:
+        """Add computed features to actions DataFrame."""
+        action['xT'] = calculate_xt_values(action, self.xt_model)
 
-        actions["dx"] = actions["end_x"] - actions["start_x"]
-        actions["dy"] = actions["end_y"] - actions["start_y"]
-        actions["distance"] = np.sqrt(actions["dx"] ** 2 + actions["dy"] ** 2)
-        actions["angle"] = np.arctan2(actions["dy"], actions["dx"])
+        action["dx"] = action["end_x"] - action["start_x"]
+        action["dy"] = action["end_y"] - action["start_y"]
+        action["distance"] = np.sqrt(action["dx"] ** 2 + action["dy"] ** 2)
+        action["angle"] = np.arctan2(action["dy"], action["dx"])
 
-        actions["time_diff"] = actions["time_seconds"].diff().fillna(0.0)
+        action["time_diff"] = action["time_seconds"].diff().fillna(0.0)
 
-        subset = possession[['event_id', 'duration', 'under_pressure', 'counterpress', 'possession']].copy()
-        subset['xG'] = calculate_xg_values(possession)
-        actions = actions.merge(subset, left_on='original_event_id', right_on='event_id', how='left').drop(columns='event_id')
-        actions = actions.fillna({'duration': 0.0, 'under_pressure': False, 'counterpress': False, 'xG': 0.0})
-
-        actions['xT'] = calculate_xt_values(actions, self.xt_model)
-
-        return actions
+        return action
 
     def _normalize_features(self, features_df: pd.DataFrame) -> np.ndarray:
         """
@@ -138,18 +131,14 @@ class SequencePreprocessor:
         total_xt = actions_df['xT'].sum()
         return np.array([max(total_xg, total_xt)])
 
-    def process_match(self, match_id: int, events_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
+    def process_match(self, match_id: int, match: pd.Series, events_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
         print(f"→Processing match {match_id}: {len(events_df)} events")
-
-        possessions = self._extract_possessions(events_df)
 
         all_sequences = []
         all_labels = []
 
-        for possession in possessions:
-            features = self._extract_features(possession)
-            if len(features) < self.sequence_length:
-                continue
+        for pid, actions_df in self._extract_actions(match, events_df).items():
+            features = self._update_action(actions_df)
 
             normalized_features = self._normalize_features(features)
 
@@ -160,15 +149,15 @@ class SequencePreprocessor:
             all_sequences.append(sequence)
             all_labels.append(labels)
 
-        X = np.concatenate(all_sequences) if all_sequences else np.array([]).reshape(0, self.sequence_length, 0)
-        y = np.concatenate(all_labels) if all_labels else np.array([])
+        X = np.concatenate(all_sequences)
+        y = np.concatenate(all_labels)
 
         print(f" → Generated {len(X)} sequences, {len(y)} labels for match {match_id}")
 
         return X, y
 
     def process_matches(self, matches: Iterable[Tuple[pd.Series, pd.DataFrame]]) -> Tuple[np.ndarray, np.ndarray]:
-        all_X, all_y = zip(*(self.process_match(match["game_id"], events_df) for match, events_df in matches))
+        all_X, all_y = zip(*(self.process_match(match["game_id"], match, events_df) for match, events_df in matches))
 
         X = np.concatenate(all_X)
         y = np.concatenate(all_y)

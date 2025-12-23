@@ -28,30 +28,28 @@ def preprocessor():
 
 
 @pytest.fixture(scope="module")
-def possessions(sample_game, preprocessor):
-    _, events = sample_game
-    return preprocessor._extract_possessions(events)
+def actions(sample_game, preprocessor):
+    return preprocessor._extract_actions(*sample_game)
 
 
 @pytest.fixture(scope="module")
-def sample_extracted_possession(possessions):
-    return possessions[0]
+def sample_extracted_action(actions):
+    return actions[2]
 
 
 @pytest.fixture(scope="module")
-def sample_extracted_features(preprocessor, sample_extracted_possession):
-    return preprocessor._extract_features(sample_extracted_possession)
+def sample_updated_action(preprocessor, sample_extracted_action):
+    return preprocessor._update_action(sample_extracted_action)
 
 
 @pytest.fixture(scope="module")
-def shot_possession(preprocessor, possessions):
-    possessions_ = possessions[17]
-    return preprocessor._extract_features(possessions_)
+def shot_action(preprocessor, actions):
+    return preprocessor._update_action(actions[17])
 
 
 @pytest.fixture(scope="module")
-def sample_normalized_features(preprocessor, sample_extracted_features):
-    return preprocessor._normalize_features(sample_extracted_features)
+def sample_normalized_features(preprocessor, sample_updated_action):
+    return preprocessor._normalize_features(sample_updated_action)
 
 
 def test_extract_possessions(sample_game, preprocessor):
@@ -66,30 +64,31 @@ def test_extract_possessions(sample_game, preprocessor):
     assert home_team_id == 941, "Home team ID does not match!"
 
     # Test _extract_possessions
-    possessions_df = preprocessor._extract_possessions(events)
-    assert len(possessions_df) == 95, "Number of possessions_df does not match!"
+    possessions_df = preprocessor._extract_actions(match, events)
+    assert len(possessions_df) == 82, "Number of possessions_df does not match!"
 
     # Test _extract_features
-    first_possession_df = possessions_df[0]
-    assert len(first_possession_df) == 13, "Number of actions in first possession does not match!"
+    first_possession_df = possessions_df[2]
+    assert len(first_possession_df) == 7, "Number of actions in first possession does not match!"
     assert first_possession_df.iloc[0]['possession'] == 2, "First possession ID does not match!"
-    assert len(first_possession_df.columns) == 28, "Number of columns in actions does not match!"
+    assert len(first_possession_df.columns) == 22, "Number of columns in actions does not match!"
 
-    expected_columns = ['game_id', 'event_id', 'period_id', 'team_id', 'player_id', 'type_id', 'type_name', 'index', 'timestamp', 'minute', 'second',
-                        'possession', 'possession_team_id', 'possession_team_name', 'play_pattern_id', 'play_pattern_name', 'team_name', 'duration', 'extra',
-                        'related_events', 'player_name', 'position_id', 'position_name', 'location', 'under_pressure', 'counterpress', 'visible_area_360',
-                        'freeze_frame_360']
+    print(first_possession_df.columns)
+
+    expected_columns = ['game_id', 'original_event_id', 'period_id', 'time_seconds', 'team_id', 'player_id', 'start_x', 'start_y', 'end_x', 'end_y', 'type_id',
+                        'result_id', 'bodypart_id', 'action_id', 'team_name', 'player_name', 'possession', 'type_name', 'duration', 'under_pressure',
+                        'counterpress', 'xG']
     assert list(first_possession_df.columns) == expected_columns, "Column names do not match!"
 
 
-def test_extract_features(preprocessor, sample_extracted_possession):
-    assert sample_extracted_possession.iloc[0]['possession'] == 2
+def test_extract_features(preprocessor, sample_extracted_action):
+    assert sample_extracted_action.iloc[0]['possession'] == 2
 
-    features_df = preprocessor._extract_features(sample_extracted_possession)
+    features_df = preprocessor._update_action(sample_extracted_action)
     print(f"Features: \n{features_df}")
 
     assert len(features_df) == 7, "Number of actions does not match!"
-    assert len(features_df.columns) == 25, "Number of features does not match!"
+    assert len(features_df.columns) == 28, "Number of features does not match!"
 
     expected_columns = ['game_id',
                         'original_event_id',
@@ -105,42 +104,45 @@ def test_extract_features(preprocessor, sample_extracted_possession):
                         'result_id',
                         'bodypart_id',
                         'action_id',
+                        'team_name',
+                        'player_name',
+                        'possession',
+                        'type_name',
+                        'duration',
+                        'under_pressure',
+                        'counterpress',
+                        'xG',
+                        'xT',
                         'dx',
                         'dy',
                         'distance',
                         'angle',
-                        'time_diff',
-                        'duration',
-                        'under_pressure',
-                        'counterpress',
-                        'possession',
-                        'xG',
-                        'xT']
+                        'time_diff']
     assert list(features_df.columns) == expected_columns, "Column names do not match!"
 
 
-def test_extracted_features(sample_game, sample_extracted_features):
-    actions = (spadl.add_names(sample_extracted_features))
-    actions['team_name'] = "Netherlands" if sample_extracted_features.iloc[0]['team_id'] == 941 else "England"
+def test_extracted_features(sample_game, sample_updated_action):
+    actions = (spadl.add_names(sample_updated_action))
+    actions['team_name'] = "Netherlands" if sample_updated_action.iloc[0]['team_id'] == 941 else "England"
     actions['possession'] = 2
 
-    assert len(sample_extracted_features) == 7, "Number of actions does not match!"
+    assert len(sample_updated_action) == 7, "Number of actions does not match!"
 
     fig = plot_possession_actions(actions)
     fig.savefig('data/test/possession_2.png', dpi=300, bbox_inches='tight')
     # plt.show()
 
 
-def test_normalize_features(preprocessor, sample_extracted_features):
-    normalized_features = preprocessor._normalize_features(sample_extracted_features)
+def test_normalize_features(preprocessor, sample_updated_action):
+    normalized_features = preprocessor._normalize_features(sample_updated_action)
     assert normalized_features.shape == (7, 45), "Normalized features shape does not match!"
 
     expected_normalized_features_df = pd.read_csv('data/test/normalized_features_df.csv')
     assert np.allclose(expected_normalized_features_df.values, normalized_features), "Normalized features do not match expected values!"
 
 
-def test_normalize_features_goal(preprocessor, possessions):
-    features = preprocessor._extract_features(possessions[8])
+def test_normalize_features_goal(preprocessor, actions):
+    features = preprocessor._update_action(actions[11])
     normalized_features = preprocessor._normalize_features(features)
     assert normalized_features.shape == (20, 45), "Normalized features shape does not match!"
 
@@ -157,8 +159,8 @@ def test_create_simple_sequence(preprocessor, sample_normalized_features):
     assert np.allclose(sample_normalized_features[-6:], sequence[0]), "Normalized features do not match expected values!"
 
 
-def test_create_label(preprocessor, sample_extracted_features):
-    features = sample_extracted_features.tail(SEQUENCE_LENGTH)
+def test_create_label(preprocessor, sample_updated_action):
+    features = sample_updated_action.tail(SEQUENCE_LENGTH)
     labels = preprocessor._create_label(features)
 
     xg_sum = features['xG'].sum()
@@ -171,9 +173,9 @@ def test_create_label(preprocessor, sample_extracted_features):
     assert labels[0] == xt_sum, "Label value does not match!"
 
 
-def test_create_label_from_shot(preprocessor, possessions):
-    shot_possession = possessions[13]
-    shot_features = preprocessor._extract_features(shot_possession)
+def test_create_label_from_shot(preprocessor, actions):
+    shot_possession = actions[17]
+    shot_features = preprocessor._update_action(shot_possession)
 
     # print(shot_features)
 
@@ -181,8 +183,9 @@ def test_create_label_from_shot(preprocessor, possessions):
     actions["team_name"] = np.where(actions["team_id"] == 941, "Netherlands", "England")
     actions['possession'] = shot_possession['possession'].iloc[0]
     print(f"Shot Possession Actions: \n{actions}")
-    plot_possession_actions(actions)
-    plt.show()
+    fig = plot_possession_actions(actions)
+    fig.savefig('data/test/possession_17.png', dpi=300, bbox_inches='tight')
+    # plt.show()
 
     features = shot_features.tail(SEQUENCE_LENGTH)
     labels = preprocessor._create_label(features)
@@ -196,9 +199,9 @@ def test_create_label_from_shot(preprocessor, possessions):
     assert labels[0] == xg_sum, "Label value does not match!"
 
 
-def test_create_label_from_goal(preprocessor, possessions):
-    goal_possession = possessions[8]
-    shot_features = preprocessor._extract_features(goal_possession)
+def test_create_label_from_goal(preprocessor, actions):
+    goal_possession = actions[11]
+    shot_features = preprocessor._update_action(goal_possession)
 
     features = shot_features.tail(SEQUENCE_LENGTH)
     labels = preprocessor._create_label(features)
@@ -217,7 +220,7 @@ def test_process_match(sample_game, preprocessor):
     match, events = sample_game
     match_id = match.get('game_id', match.name)
 
-    X, y = preprocessor.process_match(match_id, events)
+    X, y = preprocessor.process_match(match_id, match, events)
 
     expected_normalized_features_df = pd.read_csv('data/test/normalized_features_df.csv').tail(SEQUENCE_LENGTH)
     assert np.allclose(expected_normalized_features_df.values, X[0]), "Normalized features do not match expected values!"
