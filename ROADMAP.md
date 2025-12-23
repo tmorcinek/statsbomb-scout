@@ -21,6 +21,9 @@ Ten plik zawiera opis zadań do wykonania oraz plan rozwoju projektu. Projekt do
 8. **Automat do testowania modeli z różnymi parametrami i zapisania najlepszego modelu do pliku**  
    - Opis: Stworzenie skryptu automatyzującego trening modeli z różnymi hiperparametrami, ewaluację i zapis najlepszego modelu.
 
+9. **Rozszerzenie analyze_match - wizualizacje najlepszych meczów**  
+   - Opis: Modyfikacja skryptu analyze_match.py w celu generowania wizualizacji dla najlepszych meczów (np. na podstawie wyliczonych wartości akcji, xG, xT), z wykreślonymi ścieżkami akcji na boisku i wskaźnikami wartości dla każdej akcji.
+
 ## Plan rozwoju
 
 - **Faza 1:** Optymalizacja i refaktoryzacja SequencePreprocessor (punkty 1-3).

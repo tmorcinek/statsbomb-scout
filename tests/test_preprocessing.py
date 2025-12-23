@@ -1,5 +1,4 @@
 """Test script to verify preprocessing flow."""
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
@@ -7,6 +6,7 @@ import socceraction.spadl as spadl
 
 from src.analysis.visualization import plot_possession_actions
 from src.data.data_loader import load_statsbomb_socceraction_data
+from src.ml.preprocessing.possessions_extraction import extract_possessions
 from src.ml.preprocessing.sequence import SequencePreprocessor
 from src.ml.xthreat import get_default_xt_model
 
@@ -161,7 +161,7 @@ def test_create_simple_sequence(preprocessor, sample_normalized_features):
 
 def test_create_label(preprocessor, sample_updated_action):
     features = sample_updated_action.tail(SEQUENCE_LENGTH)
-    labels = preprocessor._create_label(features)
+    label = preprocessor._create_label(features)
 
     xg_sum = features['xG'].sum()
     assert xg_sum == 0.0, "xG sum does not match!"
@@ -169,8 +169,7 @@ def test_create_label(preprocessor, sample_updated_action):
     xt_sum = features['xT'].sum()
     assert xt_sum == 0.00789534, "xT sum does not match!"
 
-    assert labels.shape == (1,), "Labels shape does not match!"
-    assert labels[0] == xt_sum, "Label value does not match!"
+    assert label == xt_sum, "Label value does not match!"
 
 
 def test_create_label_from_shot(preprocessor, actions):
@@ -188,15 +187,14 @@ def test_create_label_from_shot(preprocessor, actions):
     # plt.show()
 
     features = shot_features.tail(SEQUENCE_LENGTH)
-    labels = preprocessor._create_label(features)
+    label = preprocessor._create_label(features)
 
     xg_sum = features['xG'].sum()
     assert xg_sum == 0.028932061, "xG sum does not match!"
 
     assert xg_sum == shot_features.iloc[-2]['xG'], "xG sum does not match!"
 
-    assert labels.shape == (1,), "Labels shape does not match!"
-    assert labels[0] == xg_sum, "Label value does not match!"
+    assert label == xg_sum, "Label value does not match!"
 
 
 def test_create_label_from_goal(preprocessor, actions):
@@ -204,7 +202,7 @@ def test_create_label_from_goal(preprocessor, actions):
     shot_features = preprocessor._update_action(goal_possession)
 
     features = shot_features.tail(SEQUENCE_LENGTH)
-    labels = preprocessor._create_label(features)
+    label = preprocessor._create_label(features)
 
     xg_sum = features['xG'].sum()
     assert xg_sum == 1.0, "xG sum does not match!"
@@ -212,15 +210,14 @@ def test_create_label_from_goal(preprocessor, actions):
     xt_sum = features['xT'].sum()
     assert xt_sum == 0.004536809999999999, "xT sum does not match!"
 
-    assert labels.shape == (1,), "Labels shape does not match!"
-    assert labels[0] == 1.0, "Label value does not match!"
+    assert label == 1.0, "Label value does not match!"
 
 
 def test_process_match(sample_game, preprocessor):
     match, events = sample_game
     match_id = match.get('game_id', match.name)
 
-    X, y = preprocessor.process_match(match_id, match, events)
+    X, y, p = preprocessor.process_match(match_id, match, events)
 
     expected_normalized_features_df = pd.read_csv('data/test/normalized_features_df.csv').tail(SEQUENCE_LENGTH)
     assert np.allclose(expected_normalized_features_df.values, X[0]), "Normalized features do not match expected values!"
@@ -234,10 +231,16 @@ def test_process_match(sample_game, preprocessor):
 
     assert X.shape == (82, 6, 45), "X shape does not match!"
     assert y.shape == (82,), "y shape does not match!"
+    assert p.shape == (82,), "p shape does not match!"
+
+    keys = [pid for pid, df in extract_possessions(match, events).items() if len(df) >= SEQUENCE_LENGTH]
+    expected_p = np.array(keys, dtype=np.int32)
+    assert np.array_equal(p, expected_p), "P values (possession IDs) do not match!"
 
 
 def test_process_matches(sample_game, preprocessor):
     matches = [sample_game]
-    X, y = preprocessor.process_matches(matches)
+    X, y, p = preprocessor.process_matches(matches)
     assert X.shape == (82, 6, 45), "X shape does not match!"
     assert y.shape == (82,), "y shape does not match!"
+    assert p.shape == (82,), "p shape does not match!"

@@ -125,17 +125,18 @@ class SequencePreprocessor:
 
         return features[-self.sequence_length:].reshape(1, self.sequence_length, -1)
 
-    def _create_label(self, actions_df: pd.DataFrame) -> np.ndarray:
+    def _create_label(self, actions_df: pd.DataFrame) -> float:
         """Create label for possession by comparing total xG and xT."""
         total_xg = actions_df['xG'].sum()
         total_xt = actions_df['xT'].sum()
-        return np.array([max(total_xg, total_xt)])
+        return max(total_xg, total_xt)
 
-    def process_match(self, match_id: int, match: pd.Series, events_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
+    def process_match(self, match_id: int, match: pd.Series, events_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         print(f"→Processing match {match_id}: {len(events_df)} events")
 
         all_sequences = []
-        all_labels = []
+        labels = []
+        possession_ids = []
 
         for pid, actions_df in self._extract_actions(match, events_df).items():
             features = self._update_action(actions_df)
@@ -144,23 +145,25 @@ class SequencePreprocessor:
 
             sequence = self._create_simple_sequence(normalized_features)
 
-            labels = self._create_label(features.tail(self.sequence_length))
+            label = self._create_label(features.tail(self.sequence_length))
 
             all_sequences.append(sequence)
-            all_labels.append(labels)
+            labels.append(label)
+            possession_ids.append(pid)
 
         X = np.concatenate(all_sequences)
-        y = np.concatenate(all_labels)
-
+        y = np.array(labels)
+        p = np.array(possession_ids)
         print(f" → Generated {len(X)} sequences, {len(y)} labels for match {match_id}")
 
-        return X, y
+        return X, y, p
 
-    def process_matches(self, matches: Iterable[Tuple[pd.Series, pd.DataFrame]]) -> Tuple[np.ndarray, np.ndarray]:
-        all_X, all_y = zip(*(self.process_match(match["game_id"], match, events_df) for match, events_df in matches))
+    def process_matches(self, matches: Iterable[Tuple[pd.Series, pd.DataFrame]]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        all_X, all_y, all_p = zip(*(self.process_match(match["game_id"], match, events_df) for match, events_df in matches))
 
         X = np.concatenate(all_X)
         y = np.concatenate(all_y)
+        p = np.concatenate(all_p)
 
         print(f"\nTotal sequences from all matches: {len(X)}")
-        return X, y
+        return X, y, p
