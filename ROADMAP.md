@@ -6,17 +6,8 @@ Ten plik zawiera opis zadań do wykonania oraz plan rozwoju projektu. Projekt do
 
 ## Zadania do wykonania
 
-1. ~~**Napisanie testów niezbędnych do optymalizacji implementacji obiektu SequencePreprocessor**~~  
-   - ~~Opis: Stworzenie kompleksowych testów jednostkowych i integracyjnych dla klasy SequencePreprocessor, aby umożliwić bezpieczne optymalizacje kodu.~~
-
-2. **Refaktoryzacja SequencePreprocessor - uproszczenie i zmiana implementacji funkcji _extract_possessions**  
-   - Opis: Przepisanie funkcji _extract_possessions w celu uproszczenia logiki, usunięcia komentarzy i poprawy wydajności.
-
 3. **Refaktoring - dodanie kroków do SequencePreprocessor z możliwością zapisu każdego kroku**  
    - Opis: Rozszerzenie klasy o możliwość zapisywania wyników pośrednich na każdym etapie przetwarzania, np. po ekstrakcji posiadania, cech itp.
-
-4. **Przetestowanie labelek**  
-   - Opis: Walidacja poprawności generowanych etykiet (labels) dla sekwencji, w tym sprawdzenie wartości xG i xT.
 
 5. **Zmiana sposobu wyliczania labelek: ostatni krok w sekwencji nieokreślony**  
    - Opis: Modyfikacja logiki tworzenia etykiet, gdzie ostatni krok w sekwencji jest nieokreślony (nie wiadomo czy został oddany celny strzał, czy w ogóle został oddany strzał).
