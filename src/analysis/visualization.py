@@ -45,7 +45,7 @@ def plot_possession_actions(possession_actions: pd.DataFrame, ax=None, figsize: 
         end_x = action['end_x']
         end_y = action['end_y']
 
-        print(f"idx: {idx}, Action: {action['type_name']}, Start: ({start_x}, {start_y}), End: ({end_x}, {end_y})")
+        # print(f"idx: {idx}, Action: {action['type_name']}, Start: ({start_x}, {start_y}), End: ({end_x}, {end_y})")
         # Determine color: black for first action, blue for possessing team, red for opponent
         if idx == 0:
             color = 'black'
