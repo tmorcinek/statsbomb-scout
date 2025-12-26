@@ -13,10 +13,10 @@ pd.set_option('display.width', 1000)
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
 
-
 """
 type_id 11: shot, 12: shot_penalty, 13: shot_freekick
 """
+
 
 def extract_actions_from_events(game: pd.Series, events_df: pd.DataFrame) -> pd.DataFrame:
     actions = spadl.statsbomb.convert_to_actions(events_df, game['home_team_id'], xy_fidelity_version=2)
@@ -27,7 +27,7 @@ def extract_actions_from_events(game: pd.Series, events_df: pd.DataFrame) -> pd.
 def enrich_actions_with_event_data(actions: pd.DataFrame, events: pd.DataFrame) -> pd.DataFrame:
     events['xG'] = calculate_xg_values(events)
     cols_to_use = ['event_id', 'team_name', 'player_name', 'possession', 'type_name',
-                   'duration', 'under_pressure', 'counterpress', 'xG']
+                   'duration', 'under_pressure', 'counterpress', 'xG', 'possession_team_id', 'possession_team_name']
     return (
         actions
         .assign(original_event_id=lambda x: x['original_event_id'].bfill())
@@ -73,3 +73,7 @@ def extract_possessions_ended_with_shots(game: pd.Series, events: pd.DataFrame) 
 def extract_possessions_ended_with_goals(game: pd.Series, events: pd.DataFrame) -> dict[int, pd.DataFrame]:
     possessions = extract_possessions(game, events)
     return {pid: df for pid, df in possessions.items() if df.iloc[-1]['type_id'] in [11, 12, 13] and df.iloc[-1]['result_id'] == 1}
+
+
+def tail_dataframes_to_sequence_length(dataframes: list[pd.DataFrame], n: int) -> list[pd.DataFrame]:
+    return [df.tail(n) for df in dataframes]

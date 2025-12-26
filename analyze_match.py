@@ -9,7 +9,7 @@ from src.analysis.game_utils import game_summary
 from src.analysis.visualization import plot_multiple_possessions
 from src.data.data_loader import load_socceraction_match
 from src.ml.models.attention_lstm import AttentionLayer
-from src.ml.preprocessing.possessions_extraction import extract_possessions
+from src.ml.preprocessing.possessions_extraction import extract_possessions, tail_dataframes_to_sequence_length
 from src.ml.preprocessing.sequence import SequencePreprocessor
 from src.ml.xthreat import get_default_xt_model
 
@@ -63,6 +63,7 @@ def analyze_match_actions(match_id: int, competition_id: int = 55, season_id: in
     print("=" * 50)
 
     top_possessions = [extract_possessions(match, events)[p_ids[idx]] for idx in top_indices]
+    top_possessions = tail_dataframes_to_sequence_length(top_possessions, config.SEQUENCE_LENGTH)
     fig = plot_multiple_possessions(top_possessions)
     fig.savefig('data/plot/possessions_best_lstm_attention.png', dpi=300, bbox_inches='tight')
     plt.show()

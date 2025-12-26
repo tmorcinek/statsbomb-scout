@@ -27,7 +27,8 @@ def plot_possession_actions(possession_actions: pd.DataFrame, ax=None, figsize: 
         fig = None
 
     # Get team and color information
-    team_name = possession_actions.iloc[0]['team_name']
+    possession_team_id = possession_actions.iloc[0]['possession_team_id']
+    possession_team_name = possession_actions.iloc[0]['possession_team_name']
 
     # Separate arrays for scatter plot
     start_xs = []
@@ -49,7 +50,7 @@ def plot_possession_actions(possession_actions: pd.DataFrame, ax=None, figsize: 
         # Determine color: black for first action, blue for possessing team, red for opponent
         if idx == 0:
             color = 'black'
-        elif action['team_name'] == team_name:
+        elif action['team_id'] == possession_team_id:
             color = 'blue'
         else:
             color = 'red'
@@ -103,7 +104,7 @@ def plot_possession_actions(possession_actions: pd.DataFrame, ax=None, figsize: 
     time_end_formatted = f"{time_end_seconds // 60:02d}:{time_end_seconds % 60:02d}"
 
     ax.set_title(
-        f"Possession #{first_action['possession']} - Team: {team_name} - Actions: {possession_length} \n Half: {period_id} - Time: {time_start_formatted} - {time_end_formatted}",
+        f"Possession #{first_action['possession']} - Team: {possession_team_name} - Actions: {possession_length} \n Half: {period_id} - Time: {time_start_formatted} - {time_end_formatted}",
         fontsize=12, fontweight='normal', pad=20
     )
 
