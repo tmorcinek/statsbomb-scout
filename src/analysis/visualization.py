@@ -17,7 +17,7 @@ pd.set_option('display.max_colwidth', None)
 
 
 
-def plot_possession_actions(possession_actions: pd.DataFrame, ax=None, figsize: tuple = (10, 8)) -> Optional[plt.Figure]:
+def plot_possession_actions(possession_actions: pd.DataFrame, ax=None, figsize: tuple = (10, 8), title: Optional[str] = None) -> Optional[plt.Figure]:
     # If no axis provided, create a new figure
     if ax is None:
         pitch = VerticalPitch(pitch_type='custom', pitch_length=spadl_config.field_length, pitch_width=spadl_config.field_width, pitch_color='white', line_color='black')
@@ -94,24 +94,26 @@ def plot_possession_actions(possession_actions: pd.DataFrame, ax=None, figsize: 
     )
 
     # Add title with possession information
-    possession_length = len(possession_actions)
-    first_action = possession_actions.iloc[0]
-    last_action = possession_actions.iloc[-1]
-    period_id = first_action['period_id']
-    time_start_seconds = int(first_action['time_seconds'])
-    time_end_seconds = int(last_action['time_seconds'])
-    time_start_formatted = f"{time_start_seconds // 60:02d}:{time_start_seconds % 60:02d}"
-    time_end_formatted = f"{time_end_seconds // 60:02d}:{time_end_seconds % 60:02d}"
+    if title is None:
+        possession_length = len(possession_actions)
+        first_action = possession_actions.iloc[0]
+        last_action = possession_actions.iloc[-1]
+        period_id = first_action['period_id']
+        time_start_seconds = int(first_action['time_seconds'])
+        time_end_seconds = int(last_action['time_seconds'])
+        time_start_formatted = f"{time_start_seconds // 60:02d}:{time_start_seconds % 60:02d}"
+        time_end_formatted = f"{time_end_seconds // 60:02d}:{time_end_seconds % 60:02d}"
+        title = f"Possession #{first_action['possession']} - Team: {possession_team_name} - Actions: {possession_length} \n Half: {period_id} - Time: {time_start_formatted} - {time_end_formatted}"
 
     ax.set_title(
-        f"Possession #{first_action['possession']} - Team: {possession_team_name} - Actions: {possession_length} \n Half: {period_id} - Time: {time_start_formatted} - {time_end_formatted}",
+        title,
         fontsize=12, fontweight='normal', pad=20
     )
 
     return fig if fig is not None else ax.figure
 
 
-def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame], figsize: tuple = None) -> plt.Figure:
+def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame]) -> plt.Figure:
     num_possessions = len(possession_actions_list)
 
     if num_possessions == 0:
@@ -120,9 +122,7 @@ def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame], figsi
     cols = math.ceil(math.sqrt(num_possessions)) + 1
     rows = math.ceil(num_possessions / cols)
 
-    if figsize is None:
-        figsize = (6 * cols, 6 * rows)
-
+    figsize = (6 * cols, 6 * rows)
     fig, axes = plt.subplots(rows, cols, figsize=figsize)
 
     if num_possessions == 1:

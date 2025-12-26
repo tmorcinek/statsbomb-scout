@@ -91,3 +91,15 @@ def test_possession_netherlands():
 
     plot_possession_actions(england_first_possession)
     plt.show()
+
+
+def test_possession_with_custom_title():
+    game, events = load_socceraction_match("data/statsbomb/data", 55, 282)
+
+    possessions = extract_possessions(game, events)
+
+    possession = possessions[2]
+
+    fig = plot_possession_actions(possession, title="Custom Possession Title - Test")
+    fig.savefig('data/test/possession_2_custom_title.png', dpi=300, bbox_inches='tight')
+    plt.show()
