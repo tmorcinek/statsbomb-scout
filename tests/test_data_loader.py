@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 from socceraction.data.statsbomb import StatsBombLoader
 
+from src.analysis.game_utils import game_summary
 from src.data.data_loader import _add_team_names_to_game, load_statsbomb_socceraction_data, load_socceraction_data
 
 pd.set_option('display.width', 1000)
@@ -26,8 +27,8 @@ def first_teams(statsbomb_loader, first_game):
     return teams
 
 
-def test_first_game(first_game):
-    print(first_game)
+def test_first_game(statsbomb_loader):
+    first_game = statsbomb_loader.games(competition_id=55, season_id=282).iloc[0]
 
     assert isinstance(first_game, pd.Series), "First game should be a pandas Series"
 
@@ -39,8 +40,8 @@ def test_first_game(first_game):
     assert first_game['away_score'] == 2
 
 
-def test_first_teams(first_teams):
-    print(first_teams)
+def test_first_teams(statsbomb_loader, first_game):
+    first_teams = statsbomb_loader.teams(first_game['game_id'])
     assert isinstance(first_teams, pd.DataFrame), "Teams should be a Pandas DataFrame"
     assert len(first_teams) == 2, "There should be exactly two teams in a match"
 
@@ -105,3 +106,28 @@ def test_load_socceraction_data(statsbomb_loader):
     assert game['away_score'] == 2
 
     assert len(events) == 3485, "Number of events does not match!"
+
+
+def test_game_summary():
+    game = pd.Series({
+        'home_team_name': 'France',
+        'away_team_name': 'Spain',
+        'home_score': 2,
+        'away_score': 1,
+        'competition_stage': 'Final',
+        'game_date': pd.Timestamp('2024-07-14 20:00:00')
+    })
+
+    result = game_summary(game)
+    expected = 'France 2 : 1 Spain (Final) [14.07.2024]'
+
+    assert result == expected, f"Expected '{expected}', got '{result}'"
+
+
+def test_game_summary_with_first_game(first_game, first_teams):
+    _add_team_names_to_game(first_game, first_teams)
+
+    result = game_summary(first_game)
+    expected = 'Netherlands 1 : 2 England (Semi-finals) [10.07.2024]'
+
+    assert result == expected, f"Expected '{expected}', got '{result}'"

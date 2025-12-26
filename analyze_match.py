@@ -5,6 +5,7 @@ import numpy as np
 from tensorflow import keras
 
 import config
+from src.analysis.game_utils import game_summary
 from src.analysis.visualization import plot_multiple_possessions
 from src.data.data_loader import load_socceraction_match
 from src.ml.models.attention_lstm import AttentionLayer
@@ -19,7 +20,7 @@ def analyze_match_actions(match_id: int, competition_id: int = 55, season_id: in
 
     print("\n1. Loading match data...")
     match, events = load_socceraction_match("data/statsbomb/data", competition_id, season_id, match_id)
-    print(f"Match info: {match['']}")
+    print(f"Match info: {game_summary(match)}")
     print(f"Events loaded: {len(events)}")
 
     print("\n2. Preprocessing into sequences...")
