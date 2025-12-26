@@ -120,8 +120,9 @@ def _title_with_value(possession_actions: DataFrame, predicted_value: float, att
     period_name = "1st Half" if period_id == 1 else "2nd Half"
     title = f"Possession #{possession_number}, {team_name}, {period_name}, {time_start_formatted} - {time_end_formatted}\nValue: {predicted_value:.3f}"
 
-    # if attention_weights is not None:
-    #     title += f"\nAttention: {attention_weights}"
+    if attention_weights is not None:
+        weights_str = ', '.join([f"{w:.3f}" for w in attention_weights])
+        title += f"\nAttention: [{weights_str}]"
 
     return title
 
