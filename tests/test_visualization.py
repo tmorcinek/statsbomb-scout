@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 
 import config
 from src.analysis.actions_possessions import possessions_from_actions
+from src.analysis.game_utils import game_summary
 from src.analysis.visualization import plot_possession_actions, plot_multiple_possessions
 from src.ml.preprocessing.possessions_extraction import extract_actions_from_events, extract_possessions, extract_possessions_with_shots, \
     extract_possessions_ended_with_goals, extract_possessions_ended_with_shots
@@ -122,7 +123,7 @@ def test_multiple_possessions_best(sample_game):
     best_possessions = [78, 8, 68, 18, 13]
     possessions_list = [possessions_list[pid] for pid in best_possessions]
 
-    fig = plot_multiple_possessions(possessions_list)
+    fig = plot_multiple_possessions(possessions_list, main_title=f"{game_summary(game)}\nPossessions with ids: {best_possessions}")
     fig.savefig('data/test/visualization_best.png', dpi=300, bbox_inches='tight')
 
     plt.show()
@@ -135,8 +136,9 @@ def test_plot_multiple_shots(sample_game):
 
     assert len(possessions) == 15
 
-    fig = plot_multiple_possessions(possessions.values())
+    fig = plot_multiple_possessions(possessions.values(), main_title=f"{game_summary(game)}\nPossessions with Shots")
     fig.savefig('data/test/visualization_shots.png', dpi=300, bbox_inches='tight')
+    # fig.canvas.manager.set_window_title("window_title")
     plt.show()
 
 
@@ -147,7 +149,7 @@ def test_plot_multiple_ended_with_shots(sample_game):
 
     assert len(possessions) == 10
 
-    fig = plot_multiple_possessions(possessions.values())
+    fig = plot_multiple_possessions(possessions.values(), main_title=f"{game_summary(game)}\nPossessions ended with Shots")
     fig.savefig('data/test/visualization_ended_with_shots.png', dpi=300, bbox_inches='tight')
     plt.show()
 
@@ -159,6 +161,6 @@ def test_plot_multiple_goals(sample_game):
 
     assert len(possessions) == 3
 
-    fig = plot_multiple_possessions(possessions.values())
+    fig = plot_multiple_possessions(possessions.values(), main_title=f"{game_summary(game)}\nPossessions with Goals")
     fig.savefig('data/test/visualization_goals.png', dpi=300, bbox_inches='tight')
     plt.show()

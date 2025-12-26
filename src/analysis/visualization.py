@@ -13,7 +13,7 @@ pd.set_option('display.max_rows', None)
 pd.set_option('display.max_colwidth', None)
 
 
-def plot_possession_actions(possession_actions: pd.DataFrame, ax=None, title: Optional[str] = None) -> Optional[plt.Figure]:
+def plot_possession_actions(possession_actions: pd.DataFrame, title: Optional[str] = None, ax=None) -> Optional[plt.Figure]:
     pitch = VerticalPitch(pitch_type='custom', pitch_length=spadl_config.field_length, pitch_width=spadl_config.field_width,
                           pitch_color='white', line_color='black')
     if ax is None:
@@ -105,11 +105,14 @@ def _default_title(possession_actions: DataFrame) -> str:
     return title
 
 
-def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame]) -> plt.Figure:
+def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame], titles: Optional[list[str]] = None, main_title: Optional[str] = None) -> plt.Figure:
     num_possessions = len(possession_actions_list)
 
     if num_possessions == 0:
         raise ValueError("possession_actions_list cannot be empty")
+
+    if titles is not None and len(titles) != num_possessions:
+        raise ValueError(f"titles length ({len(titles)}) must match possession_actions_list length ({num_possessions})")
 
     cols = math.ceil(math.sqrt(num_possessions)) + 1
     rows = math.ceil(num_possessions / cols)
@@ -127,10 +130,13 @@ def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame]) -> pl
                               line_color='black')
         pitch.draw(ax=axes[plot_idx])
 
-        plot_possession_actions(possession_actions, ax=axes[plot_idx])
+        plot_possession_actions(possession_actions, title=titles[plot_idx] if titles else None, ax=axes[plot_idx])
 
     for idx in range(num_possessions, rows * cols):
         axes[idx].axis('off')
+
+    if main_title is not None:
+        fig.suptitle(main_title, fontsize=14, fontweight='bold', y=0.99)
 
     plt.tight_layout()
     return fig
