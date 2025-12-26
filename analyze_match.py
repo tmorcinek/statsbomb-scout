@@ -6,7 +6,7 @@ from tensorflow import keras
 
 import config
 from src.analysis.game_utils import game_summary
-from src.analysis.visualization import plot_multiple_possessions
+from src.analysis.visualization import plot_multiple_possessions, _title_with_value
 from src.data.data_loader import load_socceraction_match
 from src.ml.models.attention_lstm import AttentionLayer
 from src.ml.preprocessing.possessions_extraction import extract_possessions, tail_dataframes_to_sequence_length
@@ -64,7 +64,16 @@ def analyze_match_actions(match_id: int, competition_id: int = 55, season_id: in
 
     top_possessions = [extract_possessions(match, events)[p_ids[idx]] for idx in top_indices]
     top_possessions = tail_dataframes_to_sequence_length(top_possessions, config.SEQUENCE_LENGTH)
-    fig = plot_multiple_possessions(top_possessions)
+
+    top_possession_titles = []
+    for i, idx in enumerate(top_indices):
+        possession = top_possessions[i]
+        predicted_value = predicted_values[idx]
+        attention_weight = attention_weights[idx]
+
+        top_possession_titles.append(_title_with_value(possession, predicted_value, attention_weight))
+
+    fig = plot_multiple_possessions(top_possessions, titles=top_possession_titles, main_title="Top Possessions by xT Value")
     fig.savefig('data/plot/possessions_best_lstm_attention.png', dpi=300, bbox_inches='tight')
     plt.show()
 

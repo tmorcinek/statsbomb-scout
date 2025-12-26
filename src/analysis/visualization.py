@@ -105,6 +105,27 @@ def _default_title(possession_actions: DataFrame) -> str:
     return title
 
 
+def _title_with_value(possession_actions: DataFrame, predicted_value: float, attention_weights: np.ndarray = None) -> str:
+    first_action = possession_actions.iloc[0]
+    last_action = possession_actions.iloc[-1]
+
+    possession_number = first_action['possession']
+    team_name = first_action['possession_team_name']
+    period_id = first_action['period_id']
+    time_start_seconds = int(first_action['time_seconds'])
+    time_end_seconds = int(last_action['time_seconds'])
+    time_start_formatted = f"{time_start_seconds // 60:02d}:{time_start_seconds % 60:02d}"
+    time_end_formatted = f"{time_end_seconds // 60:02d}:{time_end_seconds % 60:02d}"
+
+    period_name = "1st Half" if period_id == 1 else "2nd Half"
+    title = f"Possession #{possession_number}, {team_name}, {period_name}, {time_start_formatted} - {time_end_formatted}\nValue: {predicted_value:.3f}"
+
+    # if attention_weights is not None:
+    #     title += f"\nAttention: {attention_weights}"
+
+    return title
+
+
 def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame], titles: Optional[list[str]] = None, main_title: Optional[str] = None) -> plt.Figure:
     num_possessions = len(possession_actions_list)
 
