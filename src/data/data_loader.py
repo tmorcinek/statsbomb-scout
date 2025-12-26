@@ -58,8 +58,8 @@ def load_socceraction_data(loader: StatsBombLoader, competition_id: int, season_
     for index, game in games.iterrows():
         game_id = game['game_id']
         print(f"Loading events for match {game_id} ({index + 1}/{len(games)})...")
-
         try:
+            _add_team_names_to_game(game, loader.teams(game_id))
             yield game, (loader.events(game_id, load_360=True))
         except Exception as e:
             print(f"Warning: Failed to load events for match {game_id}: {e}")
@@ -70,3 +70,10 @@ def load_socceraction_match(root: str, competition_id: int, season_id: int, matc
         if match_id is None or match['game_id'] == match_id:
             return match, events
     raise ValueError(f"Match {match_id} not found in competition {competition_id}, season {season_id}")
+
+
+def _add_team_names_to_game(game: pd.Series, teams: pd.DataFrame) -> pd.Series:
+    team_map = teams.set_index("team_id")["team_name"]
+    game["home_team_name"] = team_map.get(game["home_team_id"])
+    game["away_team_name"] = team_map.get(game["away_team_id"])
+
