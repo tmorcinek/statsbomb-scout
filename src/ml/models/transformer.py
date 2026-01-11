@@ -16,7 +16,6 @@ class TransformerSequenceModel:
         self.model = None
 
     def transformer_encoder(self, inputs):
-        """Create a transformer encoder block."""
         # Multi-head attention
         attention_output = layers.MultiHeadAttention(
             num_heads=self.num_heads, key_dim=self.d_model
@@ -37,12 +36,6 @@ class TransformerSequenceModel:
         return output
 
     def build(self) -> keras.Model:
-        """
-        Build Transformer model architecture.
-
-        Returns:
-            Compiled Keras model
-        """
         inputs = layers.Input(shape=self.input_shape)
 
         # Project to d_model dimensions
@@ -71,12 +64,6 @@ class TransformerSequenceModel:
         return self.model
 
     def compile(self, learning_rate: float = 0.001):
-        """
-        Compile the model.
-
-        Args:
-            learning_rate: Learning rate for optimizer
-        """
         self.model.compile(
             optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
             loss='mse',

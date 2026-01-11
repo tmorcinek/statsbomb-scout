@@ -1,5 +1,3 @@
-"""Module for building sequence models (LSTM or Transformer)."""
-
 from tensorflow import keras
 from tensorflow.keras import layers
 
@@ -14,12 +12,6 @@ class LSTMSequenceModel:
         self.model = None
 
     def build(self) -> keras.Model:
-        """
-        Build LSTM model architecture.
-
-        Returns:
-            Compiled Keras model
-        """
         inputs = layers.Input(shape=self.input_shape)
 
         # LSTM layers
@@ -37,12 +29,6 @@ class LSTMSequenceModel:
         return self.model
 
     def compile(self, learning_rate: float = 0.001):
-        """
-        Compile the model.
-
-        Args:
-            learning_rate: Learning rate for optimizer
-        """
         self.model.compile(
             optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
             loss='mse',
