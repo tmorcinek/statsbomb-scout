@@ -19,9 +19,9 @@ pd.set_option('future.no_silent_downcasting', True)
 class SequencePreprocessor:
     """Preprocesses event data into fixed-length sequences with features."""
 
-    def __init__(self, sequence_length: int, xt_model: ExpectedThreat = get_default_xt_model()):
+    def __init__(self, sequence_length: int, xt_model: ExpectedThreat | None = None):
         self.sequence_length = sequence_length
-        self.xt_model = xt_model
+        self.xt_model = xt_model or get_default_xt_model()
         self.action_type_mapping = {}
 
     def _extract_actions(self, game: pd.Series, events_df: pd.DataFrame) -> dict[int, pd.DataFrame]:
