@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,14 +21,12 @@ class ModelTrainer:
         self.model_dir.mkdir(parents=True, exist_ok=True)
         self.history = None
 
-        # Check if model has multiple outputs (e.g., value + attention_weights)
         self.has_multiple_outputs = isinstance(model.output, dict) or (isinstance(model.output, list) and len(model.output) > 1)
 
-        # Get output names for multi-output models
         self.output_names = self.model.output_names if hasattr(self.model, 'output_names') else []
 
-    def _prepare_labels(self, y: np.ndarray, X_shape: int) -> Dict | np.ndarray:
-        if not self.has_multiple_outputs or isinstance(y, dict):
+    def _prepare_labels(self, y: Union[np.ndarray, dict], X_shape: int) -> Union[Dict, np.ndarray]:
+        if not self.has_multiple_outputs:
             return y
 
         labels = {self.VALUE_OUTPUT: y}
@@ -92,7 +90,7 @@ class ModelTrainer:
         # Additional metrics - extract value predictions
         predictions = self.model.predict(X_test)
         if isinstance(predictions, dict):
-            y_pred = predictions['value'].flatten()
+            y_pred = predictions[self.VALUE_OUTPUT].flatten()
         else:
             y_pred = predictions.flatten()
 
