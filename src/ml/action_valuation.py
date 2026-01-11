@@ -16,10 +16,7 @@ def calculate_xg_values(events: pd.DataFrame) -> pd.Series:
         return xg_values
 
     def extract_xg(extra):
-        shot = extra.get("shot", {})
-        if shot.get("outcome", {}).get("name") == "Goal":
-            return 1.0
-        return shot.get("statsbomb_xg", 0.0)
+        return extra.get("shot", {}).get("statsbomb_xg", 0.0)
 
     xg_values.loc[shots.index] = shots["extra"].map(extract_xg)
     return xg_values
