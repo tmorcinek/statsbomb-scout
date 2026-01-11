@@ -34,9 +34,9 @@ if __name__ == "__main__":
     print("\n2. Preprocessing data...")
     preprocessing_start = time.time()
     preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH, xt_model=get_default_xt_model())
-    X_train, y_train = preprocessor.process_matches(train_matches)
-    X_val, y_val = preprocessor.process_matches(val_matches)
-    X_test, y_test = preprocessor.process_matches(test_matches)
+    X_train, y_train, p_train = preprocessor.process_matches(train_matches)
+    X_val, y_val, p_val = preprocessor.process_matches(val_matches)
+    X_test, y_test, p_test = preprocessor.process_matches(test_matches)
     preprocessing_time = time.time() - preprocessing_start
     print(f"⏱️  Data preprocessing time: {preprocessing_time:.2f}s")
 

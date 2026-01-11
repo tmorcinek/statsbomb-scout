@@ -1,11 +1,10 @@
-"""Module for training and evaluating the model."""
+import json
+from pathlib import Path
+from typing import Dict
 
+import matplotlib.pyplot as plt
 import numpy as np
 from tensorflow import keras
-from pathlib import Path
-import json
-from typing import Dict
-import matplotlib.pyplot as plt
 
 import config
 
@@ -14,13 +13,6 @@ class ModelTrainer:
     """Handles model training, evaluation, and saving."""
 
     def __init__(self, model: keras.Model, model_dir: Path = Path(f"models/{config.MODEL_TYPE}/")):
-        """
-        Initialize trainer.
-
-        Args:
-            model: Keras model to train
-            model_dir: Directory to save models
-        """
         self.model = model
         self.model_dir = Path(model_dir)
         self.model_dir.mkdir(parents=True, exist_ok=True)
@@ -28,26 +20,13 @@ class ModelTrainer:
 
         # Check if model has multiple outputs (e.g., value + attention_weights)
         self.has_multiple_outputs = isinstance(model.output, dict) or (
-            isinstance(model.output, list) and len(model.output) > 1
+                isinstance(model.output, list) and len(model.output) > 1
         )
 
     def train(self, X_train: np.ndarray, y_train: np.ndarray,
-             X_val: np.ndarray, y_val: np.ndarray,
-             batch_size: int = 32, epochs: int = 50) -> keras.callbacks.History:
-        """
-        Train the model.
+              X_val: np.ndarray, y_val: np.ndarray,
+              batch_size: int = 32, epochs: int = 50):
 
-        Args:
-            X_train: Training features
-            y_train: Training labels (or dict for multi-output models)
-            X_val: Validation features
-            y_val: Validation labels (or dict for multi-output models)
-            batch_size: Batch size
-            epochs: Number of epochs
-
-        Returns:
-            Training history
-        """
         # For multi-output models, wrap labels in dict
         if self.has_multiple_outputs and not isinstance(y_train, dict):
             # Check if model has attention_weights output
@@ -62,7 +41,6 @@ class ModelTrainer:
                 y_train = {'value': y_train}
                 y_val = {'value': y_val}
 
-        # Define callbacks
         callbacks = [
             keras.callbacks.EarlyStopping(
                 monitor='val_loss',
@@ -82,7 +60,6 @@ class ModelTrainer:
             )
         ]
 
-        # Train model
         self.history = self.model.fit(
             X_train, y_train,
             validation_data=(X_val, y_val),
@@ -92,19 +69,7 @@ class ModelTrainer:
             verbose=1
         )
 
-        return self.history
-
     def evaluate(self, X_test: np.ndarray, y_test: np.ndarray) -> Dict[str, float]:
-        """
-        Evaluate model on test set.
-
-        Args:
-            X_test: Test features
-            y_test: Test labels
-
-        Returns:
-            Dictionary with evaluation metrics
-        """
         # For multi-output models, wrap labels in dict
         if self.has_multiple_outputs and not isinstance(y_test, dict):
             # Check if model has attention_weights output
@@ -117,9 +82,9 @@ class ModelTrainer:
                 y_test_dict = {'value': y_test}
         else:
             y_test_dict = y_test
-        
+
         results = self.model.evaluate(X_test, y_test_dict, verbose=0)
-        
+
         # Handle different result formats
         if isinstance(results, list):
             metrics = {
@@ -135,7 +100,7 @@ class ModelTrainer:
             y_pred = predictions['value'].flatten()
         else:
             y_pred = predictions.flatten()
-            
+
         metrics['rmse'] = np.sqrt(np.mean((y_test - y_pred) ** 2))
 
         print(f"\nTest Results:")
@@ -145,12 +110,6 @@ class ModelTrainer:
         return metrics
 
     def plot_training_history(self, filename: str = None):
-        """
-        Plot training history.
-
-        Args:
-            filename: Filename to save plot
-        """
         if self.history is None:
             print("No training history available.")
             return
@@ -188,13 +147,6 @@ class ModelTrainer:
         plt.show()
 
     def save_training_metrics(self, metrics: Dict, filename: str = "metrics.json"):
-        """
-        Save training metrics to JSON.
-
-        Args:
-            metrics: Dictionary of metrics
-            filename: Filename for metrics
-        """
         save_path = self.model_dir / filename
         with open(save_path, 'w') as f:
             json.dump(metrics, f, indent=2)
