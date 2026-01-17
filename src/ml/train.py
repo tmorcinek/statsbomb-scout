@@ -72,6 +72,7 @@ class ModelTrainer:
             verbose=1
         )
 
+
     def evaluate(self, X_test: np.ndarray, y_test: np.ndarray) -> Dict[str, float]:
         # Prepare labels for multi-output models
         y_test_prepared = self._prepare_labels(y_test, X_test.shape[1])
@@ -94,7 +95,7 @@ class ModelTrainer:
         else:
             y_pred = predictions.flatten()
 
-        metrics['rmse'] = np.sqrt(np.mean((y_test - y_pred) ** 2))
+        metrics['test_rmse'] = np.sqrt(np.mean((y_test - y_pred) ** 2))
 
         print(f"\nTest Results:")
         for metric, value in metrics.items():

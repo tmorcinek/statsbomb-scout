@@ -61,13 +61,19 @@ if __name__ == "__main__":
     print(f"⏱️  Model training time: {training_time:.2f}s")
 
     print("\n5. Evaluating model...")
-    metrics = trainer.evaluate(X_test, y_test)
+    val_metrics = trainer.evaluate(X_val, y_val)
+    test_metrics = trainer.evaluate(X_test, y_test)
+
+    all_metrics = {
+        'validation': val_metrics,
+        'test': test_metrics
+    }
 
     minutes, seconds = divmod(time.time() - start_time, 60)
     print(f"\n⏱️  Total execution time: {int(minutes)}m {seconds:.2f}s")
 
     print("\n6. Saving results...")
-    trainer.save_training_metrics(metrics)
+    trainer.save_training_metrics(all_metrics)
     trainer.plot_training_history(filename="training_history.png")
 
     print("\n" + "=" * 50)
