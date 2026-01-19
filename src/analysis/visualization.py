@@ -92,33 +92,32 @@ def plot_possession_actions(possession_actions: pd.DataFrame, title: Optional[st
 
 
 def _default_title(possession_actions: DataFrame) -> str:
-    possession_length = len(possession_actions)
-    possession_team_name = possession_actions.iloc[0]['possession_team_name']
     first_action = possession_actions.iloc[0]
     last_action = possession_actions.iloc[-1]
+    possession_length = len(possession_actions)
     period_id = first_action['period_id']
-    time_start_seconds = int(first_action['time_seconds'])
-    time_end_seconds = int(last_action['time_seconds'])
-    time_start_formatted = f"{time_start_seconds // 60:02d}:{time_start_seconds % 60:02d}"
-    time_end_formatted = f"{time_end_seconds // 60:02d}:{time_end_seconds % 60:02d}"
-    title = f"Possession #{first_action['possession']} - Team: {possession_team_name} - Actions: {possession_length} \n Half: {period_id} - Time: {time_start_formatted} - {time_end_formatted}"
-    return title
+
+    period_offsets = {1: 0, 2: 45, 3: 90, 4: 105, 5: 120}
+    offset = period_offsets.get(period_id, 0) * 60
+    time_start_seconds = int(first_action['time_seconds']) + offset
+    time_end_seconds = int(last_action['time_seconds']) + offset
+    formatted = f"{time_start_seconds // 60:02d}:{time_start_seconds % 60:02d}"
+    end_formatted = f"{time_end_seconds // 60:02d}:{time_end_seconds % 60:02d}"
+
+    period_names = {
+        1: "1st Half",
+        2: "2nd Half",
+        3: "Extra Time 1st Half",
+        4: "Extra Time 2nd Half",
+        5: "Penalty Shootout"
+    }
+    period_name = period_names.get(period_id, "Unknown")
+
+    return f"Possession #{first_action['possession']} ({possession_length}↔), {first_action['possession_team_name']}, {period_name}, {formatted} - {end_formatted}"
 
 
 def _title_with_value(possession_actions: DataFrame, predicted_value: float, attention_weights: np.ndarray = None) -> str:
-    first_action = possession_actions.iloc[0]
-    last_action = possession_actions.iloc[-1]
-
-    possession_number = first_action['possession']
-    team_name = first_action['possession_team_name']
-    period_id = first_action['period_id']
-    time_start_seconds = int(first_action['time_seconds'])
-    time_end_seconds = int(last_action['time_seconds'])
-    time_start_formatted = f"{time_start_seconds // 60:02d}:{time_start_seconds % 60:02d}"
-    time_end_formatted = f"{time_end_seconds // 60:02d}:{time_end_seconds % 60:02d}"
-
-    period_name = "1st Half" if period_id == 1 else "2nd Half"
-    title = f"Possession #{possession_number}, {team_name}, {period_name}, {time_start_formatted} - {time_end_formatted}\nValue: {predicted_value:.3f}"
+    title = f"{_default_title(possession_actions)}\nValue: {predicted_value:.3f}"
 
     if attention_weights is not None:
         weights_str = ', '.join([f"{w:.3f}" for w in attention_weights])
