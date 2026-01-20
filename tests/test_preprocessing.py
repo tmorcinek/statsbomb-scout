@@ -240,7 +240,10 @@ def test_process_match(sample_game, preprocessor):
 
 def test_process_matches(sample_game, preprocessor):
     matches = [sample_game]
-    X, y, p = preprocessor.process_matches(matches)
+    X, y, p, m = preprocessor.process_matches(matches)
     assert X.shape == (82, 6, 45), "X shape does not match!"
     assert y.shape == (82,), "y shape does not match!"
     assert p.shape == (82,), "p shape does not match!"
+    assert m.shape == (82,), "m shape does not match!"
+
+    assert np.all(m == 3942819), "Match IDs in m do not match!"

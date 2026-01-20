@@ -158,12 +158,13 @@ class SequencePreprocessor:
 
         return X, y, p
 
-    def process_matches(self, matches: Iterable[Tuple[pd.Series, pd.DataFrame]]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        all_X, all_y, all_p = zip(*(self.process_match(match["game_id"], match, events_df) for match, events_df in matches))
-
-        X = np.concatenate(all_X)
-        y = np.concatenate(all_y)
-        p = np.concatenate(all_p)
+    def process_matches(self, matches: Iterable[Tuple[pd.Series, pd.DataFrame]]) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        results = [
+            (X, y, p,  np.full_like(p, m["game_id"]))
+            for m, e in matches
+            for X, y, p in [self.process_match(m["game_id"], m, e)]
+        ]
+        X, y, p, m = map(np.concatenate, zip(*results))
 
         print(f"\nTotal sequences from all matches: {len(X)}")
-        return X, y, p
+        return X, y, p, m

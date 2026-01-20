@@ -25,7 +25,7 @@ def analyze_match_actions(match_id: int, competition_id: int = 55, season_id: in
 
     print("\n2. Preprocessing into sequences...")
     preprocessor = SequencePreprocessor(sequence_length=config.SEQUENCE_LENGTH, xt_model=get_default_xt_model())
-    X_sequences, y_true, p_ids = preprocessor.process_match(match_id, match, events)
+    X_sequences, y_true, p_ids = preprocessor.process_matches([(match, events)] )
 
     print(f"Created {len(X_sequences)} sequences from {len(events)} events")
 
