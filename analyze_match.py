@@ -73,7 +73,7 @@ def analyze_match_actions(match_id: int, competition_id: int = 55, season_id: in
 
         top_possession_titles.append(_title_with_value(possession, predicted_value, attention_weight))
 
-    fig = plot_multiple_possessions(top_possessions, titles=top_possession_titles, main_title="Top Possessions by xT Value")
+    fig = plot_multiple_possessions(top_possessions, titles=top_possession_titles, main_title="Top Possessions by Value")
     fig.savefig('data/plot/possessions_best_lstm_attention.png', dpi=300, bbox_inches='tight')
     plt.show()
 
