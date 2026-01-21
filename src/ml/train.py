@@ -15,7 +15,7 @@ class ModelTrainer:
     VALUE_OUTPUT = 'value'
     ATTENTION_OUTPUT = 'attention_weights'
 
-    def __init__(self, model: keras.Model, model_dir: str = f"models/{config.MODEL_TYPE}/"):
+    def __init__(self, model: keras.Model, model_dir: str):
         self.model = model
         self.model_dir = Path(model_dir)
         self.model_dir.mkdir(parents=True, exist_ok=True)
