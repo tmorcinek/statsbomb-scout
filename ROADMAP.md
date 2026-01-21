@@ -12,9 +12,6 @@ Ten plik zawiera opis zadań do wykonania oraz plan rozwoju projektu. Projekt do
 2. **Refaktoring/Optymalizacja SequencePreprocessor**
    - Opis: Poprawa sequence preprocessor w celu zwiększenia wydajności i czytelności kodu oraz by łatwiej było stworzyć automat to testowania róznych ustawień jeśli chodzi o testowanie wyników.
 
-10. **Rozszerzenie analyze_match**
-   - Opis: Rozszerzenie analizy meczu o walidację wszyskich meczów i poszukiwanie najlepszych posiadań - akcji. 
-
 3. **Refaktoring - dodanie kroków do SequencePreprocessor z możliwością zapisu każdego kroku**  
    - Opis: Rozszerzenie klasy o możliwość zapisywania wyników pośrednich na każdym etapie przetwarzania, np. po ekstrakcji posiadania, cech itp.
 

@@ -20,21 +20,18 @@ class ModelTrainer:
         self.model_dir = Path(model_dir)
         self.model_dir.mkdir(parents=True, exist_ok=True)
         self.history = None
+        self._is_multi_output = isinstance(model.output, dict)
 
-        self.has_multiple_outputs = isinstance(model.output, dict) or (isinstance(model.output, list) and len(model.output) > 1)
-
-        self.output_names = self.model.output_names if hasattr(self.model, 'output_names') else []
-
-    def _prepare_labels(self, y: Union[np.ndarray, dict], X_shape: int) -> Union[Dict, np.ndarray]:
-        if not self.has_multiple_outputs:
+    def _prepare_labels(self, y: np.ndarray, X_shape: int) -> Union[Dict, np.ndarray]:
+        if not self._is_multi_output:
             return y
+        return {
+            self.VALUE_OUTPUT: y,
+            self.ATTENTION_OUTPUT: np.zeros((len(y), X_shape))
+        }
 
-        labels = {self.VALUE_OUTPUT: y}
-        if self.ATTENTION_OUTPUT in self.output_names:
-            # Provide dummy targets for attention weights (loss weight is 0, so values don't matter)
-            labels[self.ATTENTION_OUTPUT] = np.zeros((len(y), X_shape))
-
-        return labels
+    def _get_metric_key(self, history_dict: Dict, primary: str, fallback: str) -> str:
+        return next((k for k in [primary, fallback] if k in history_dict), fallback)
 
     def train(self, X_train: np.ndarray, y_train: np.ndarray,
               X_val: np.ndarray, y_val: np.ndarray,
@@ -72,52 +69,37 @@ class ModelTrainer:
             verbose=1
         )
 
+    def _extract_value_predictions(self, predictions):
+        return predictions[self.VALUE_OUTPUT].flatten() if isinstance(predictions, dict) else predictions.flatten()
 
-    def evaluate(self, X_test: np.ndarray, y_test: np.ndarray) -> Dict[str, float]:
-        # Prepare labels for multi-output models
+    def evaluate(self, X_test: np.ndarray, y_test: np.ndarray, verbose: bool = True) -> Dict[str, float]:
         y_test_prepared = self._prepare_labels(y_test, X_test.shape[1])
-
         results = self.model.evaluate(X_test, y_test_prepared, verbose=0)
 
-        # Handle different result formats
-        if isinstance(results, list):
-            metrics = {
-                'test_loss': results[0],
-                'test_mae': results[1] if len(results) > 1 else results[0]
-            }
-        else:
-            metrics = {'test_loss': results}
+        metrics = {
+            'test_loss': results[0] if isinstance(results, list) else results,
+            'test_mae': results[1] if isinstance(results, list) and len(results) > 1 else results[0]
+        }
 
-        # Additional metrics - extract value predictions
-        predictions = self.model.predict(X_test)
-        if isinstance(predictions, dict):
-            y_pred = predictions[self.VALUE_OUTPUT].flatten()
-        else:
-            y_pred = predictions.flatten()
-
+        y_pred = self._extract_predictions(self.model.predict(X_test))
         metrics['test_rmse'] = np.sqrt(np.mean((y_test - y_pred) ** 2))
 
-        print(f"\nTest Results:")
-        for metric, value in metrics.items():
-            print(f"  {metric}: {value:.4f}")
+        if verbose:
+            print(f"\nTest Results:")
+            for metric, value in metrics.items():
+                print(f"  {metric}: {value:.4f}")
 
         return metrics
 
     def plot_training_history(self, filename: str = None):
-        if self.history is None:
-            print("No training history available.")
-            return
-
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
-
-        # Determine metric keys (handle both single and multi-output models)
         history_dict = self.history.history
-        loss_key = next((k for k in ['value_loss', 'loss'] if k in history_dict), 'loss')
-        val_loss_key = next((k for k in ['val_value_loss', 'val_loss'] if k in history_dict), 'val_loss')
-        mae_key = next((k for k in ['value_mae', 'mae'] if k in history_dict), 'mae')
-        val_mae_key = next((k for k in ['val_value_mae', 'val_mae'] if k in history_dict), 'val_mae')
 
-        # Loss plot
+        loss_key = self._get_metric_key(history_dict, 'value_loss', 'loss')
+        val_loss_key = self._get_metric_key(history_dict, 'val_value_loss', 'val_loss')
+        mae_key = self._get_metric_key(history_dict, 'value_mae', 'mae')
+        val_mae_key = self._get_metric_key(history_dict, 'val_value_mae', 'val_mae')
+
         ax1.plot(history_dict[loss_key], label='Train Loss')
         ax1.plot(history_dict[val_loss_key], label='Val Loss')
         ax1.set_xlabel('Epoch')
@@ -126,7 +108,6 @@ class ModelTrainer:
         ax1.legend()
         ax1.grid(True)
 
-        # MAE plot
         ax2.plot(history_dict[mae_key], label='Train MAE')
         ax2.plot(history_dict[val_mae_key], label='Val MAE')
         ax2.set_xlabel('Epoch')
