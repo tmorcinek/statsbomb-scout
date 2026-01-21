@@ -33,7 +33,8 @@ class ModelTrainer:
     def _get_metric_key(self, history_dict: Dict, primary: str, fallback: str) -> str:
         return next((k for k in [primary, fallback] if k in history_dict), fallback)
 
-    def train(self, X_train: np.ndarray, y_train: np.ndarray,
+    def train(self,
+              X_train: np.ndarray, y_train: np.ndarray,
               X_val: np.ndarray, y_val: np.ndarray,
               batch_size: int = 32, epochs: int = 50):
 
@@ -69,7 +70,7 @@ class ModelTrainer:
             verbose=1
         )
 
-    def _extract_value_predictions(self, predictions):
+    def _extract_predictions(self, predictions):
         return predictions[self.VALUE_OUTPUT].flatten() if isinstance(predictions, dict) else predictions.flatten()
 
     def evaluate(self, X_test: np.ndarray, y_test: np.ndarray, verbose: bool = True) -> Dict[str, float]:
