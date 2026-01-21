@@ -73,25 +73,20 @@ class ModelTrainer:
     def _extract_predictions(self, predictions):
         return predictions[self.VALUE_OUTPUT].flatten() if isinstance(predictions, dict) else predictions.flatten()
 
-    def evaluate(self, X_test: np.ndarray, y_test: np.ndarray, verbose: bool = True) -> Dict[str, float]:
+    def evaluate(self, X_test: np.ndarray, y_test: np.ndarray) -> Dict[str, float]:
         y_test_prepared = self._prepare_labels(y_test, X_test.shape[1])
         results = self.model.evaluate(X_test, y_test_prepared, verbose=0)
 
         if isinstance(results, list):
             metrics = {
-                'test_loss': results[0],
-                'test_mae': results[1] if len(results) > 1 else np.nan
+                'loss': results[0],
+                'mae': results[1] if len(results) > 1 else np.nan
             }
         else:
-            metrics = {'test_loss': results}
+            metrics = {'loss': results}
 
         y_pred = self._extract_predictions(self.model.predict(X_test))
-        metrics['test_rmse'] = np.sqrt(np.mean((y_test - y_pred) ** 2))
-
-        if verbose:
-            print(f"\nTest Results:")
-            for metric, value in metrics.items():
-                print(f"  {metric}: {value:.4f}")
+        metrics['rmse'] = np.sqrt(np.mean((y_test - y_pred) ** 2))
 
         return metrics
 
