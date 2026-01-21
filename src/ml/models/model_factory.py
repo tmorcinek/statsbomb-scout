@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from tensorflow import keras
 
 import config
@@ -37,3 +39,19 @@ def create_model(model_type: str, input_shape: tuple) -> keras.Model:
     model_builder.compile()
 
     return model
+
+
+def load_model(model_type: str, model_dir: str = None) -> keras.Model:
+    if model_dir is None:
+        model_dir = f"models/{model_type}/"
+
+    model_path = Path(model_dir) / "best_model.keras"
+
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model not found at: {model_path}")
+
+    if model_type == 'attention_lstm':
+        from src.ml.models.attention_lstm import AttentionLayer
+        return keras.models.load_model(model_path, custom_objects={'AttentionLayer': AttentionLayer})
+
+    return keras.models.load_model(model_path)
