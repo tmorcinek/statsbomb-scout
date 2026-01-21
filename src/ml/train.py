@@ -15,7 +15,7 @@ class ModelTrainer:
     VALUE_OUTPUT = 'value'
     ATTENTION_OUTPUT = 'attention_weights'
 
-    def __init__(self, model: keras.Model, model_dir: Path = Path(f"models/{config.MODEL_TYPE}/")):
+    def __init__(self, model: keras.Model, model_dir: str = f"models/{config.MODEL_TYPE}/"):
         self.model = model
         self.model_dir = Path(model_dir)
         self.model_dir.mkdir(parents=True, exist_ok=True)
@@ -45,14 +45,14 @@ class ModelTrainer:
         callbacks = [
             keras.callbacks.EarlyStopping(
                 monitor='val_loss',
-                patience=10,
+                patience=config.EARLY_STOPPING_PATIENCE,
                 restore_best_weights=True
             ),
             keras.callbacks.ReduceLROnPlateau(
                 monitor='val_loss',
-                factor=0.5,
-                patience=5,
-                min_lr=1e-7
+                factor=config.REDUCE_LR_FACTOR,
+                patience=config.REDUCE_LR_PATIENCE,
+                min_lr=config.MIN_LEARNING_RATE
             ),
             keras.callbacks.ModelCheckpoint(
                 filepath=str(self.model_dir / "best_model.keras"),
@@ -77,10 +77,13 @@ class ModelTrainer:
         y_test_prepared = self._prepare_labels(y_test, X_test.shape[1])
         results = self.model.evaluate(X_test, y_test_prepared, verbose=0)
 
-        metrics = {
-            'test_loss': results[0] if isinstance(results, list) else results,
-            'test_mae': results[1] if isinstance(results, list) and len(results) > 1 else results[0]
-        }
+        if isinstance(results, list):
+            metrics = {
+                'test_loss': results[0],
+                'test_mae': results[1] if len(results) > 1 else np.nan
+            }
+        else:
+            metrics = {'test_loss': results}
 
         y_pred = self._extract_predictions(self.model.predict(X_test))
         metrics['test_rmse'] = np.sqrt(np.mean((y_test - y_pred) ** 2))
@@ -92,6 +95,15 @@ class ModelTrainer:
 
         return metrics
 
+    def _plot_metric(self, ax, history_dict: Dict, train_key: str, val_key: str, ylabel: str, title: str):
+        ax.plot(history_dict[train_key], label='Train')
+        ax.plot(history_dict[val_key], label='Val')
+        ax.set_xlabel('Epoch')
+        ax.set_ylabel(ylabel)
+        ax.set_title(title)
+        ax.legend()
+        ax.grid(True)
+
     def plot_training_history(self, filename: str = None):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
         history_dict = self.history.history
@@ -101,21 +113,8 @@ class ModelTrainer:
         mae_key = self._get_metric_key(history_dict, 'value_mae', 'mae')
         val_mae_key = self._get_metric_key(history_dict, 'val_value_mae', 'val_mae')
 
-        ax1.plot(history_dict[loss_key], label='Train Loss')
-        ax1.plot(history_dict[val_loss_key], label='Val Loss')
-        ax1.set_xlabel('Epoch')
-        ax1.set_ylabel('Loss (MSE)')
-        ax1.set_title('Training and Validation Loss')
-        ax1.legend()
-        ax1.grid(True)
-
-        ax2.plot(history_dict[mae_key], label='Train MAE')
-        ax2.plot(history_dict[val_mae_key], label='Val MAE')
-        ax2.set_xlabel('Epoch')
-        ax2.set_ylabel('MAE')
-        ax2.set_title('Training and Validation MAE')
-        ax2.legend()
-        ax2.grid(True)
+        self._plot_metric(ax1, history_dict, loss_key, val_loss_key, 'Loss (MSE)', 'Training and Validation Loss')
+        self._plot_metric(ax2, history_dict, mae_key, val_mae_key, 'MAE', 'Training and Validation MAE')
 
         plt.tight_layout()
 

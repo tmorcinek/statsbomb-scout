@@ -27,3 +27,10 @@ TRANSFORMER_BLOCKS = 2
 
 # Dropout rate
 DROPOUT = 0.2
+
+# Training callbacks configuration
+EARLY_STOPPING_PATIENCE = 10
+REDUCE_LR_PATIENCE = 5
+REDUCE_LR_FACTOR = 0.5
+MIN_LEARNING_RATE = 1e-7
+
