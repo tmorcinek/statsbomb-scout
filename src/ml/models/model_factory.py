@@ -29,8 +29,7 @@ def create_model(model_type: str, input_shape: tuple) -> keras.Model:
         model_builder = AttentionLSTMModel(
             input_shape,
             lstm_units=config.LSTM_UNITS,
-            dropout=config.DROPOUT,
-            return_attention=True
+            dropout=config.DROPOUT
         )
     else:
         raise ValueError(f"Unknown model type: {model_type}. Use 'lstm', 'transformer', or 'attention_lstm'")

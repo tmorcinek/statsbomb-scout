@@ -52,11 +52,10 @@ class AttentionLSTMModel:
     LSTM model with attention mechanism for sequence value prediction.
     """
 
-    def __init__(self, input_shape: tuple, lstm_units: int = 128, dropout: float = 0.2, return_attention: bool = True):
+    def __init__(self, input_shape: tuple, lstm_units: int = 128, dropout: float = 0.2):
         self.input_shape = input_shape
         self.lstm_units = lstm_units
         self.dropout = dropout
-        self.return_attention = return_attention
         self.model = None
 
     def build(self) -> keras.Model:
@@ -80,53 +79,25 @@ class AttentionLSTMModel:
         x = layers.Dropout(self.dropout)(x)
         value_output = layers.Dense(1, activation='linear', name='value')(x)
 
-        # Create model with two outputs
-        if self.return_attention:
-            self.model = keras.Model(
-                inputs=inputs,
-                outputs={'value': value_output, 'attention_weights': attention_weights}
-            )
-        else:
-            self.model = keras.Model(inputs=inputs, outputs=value_output)
+        # Create model with outputs: value and attention weights
+        self.model = keras.Model(
+            inputs=inputs,
+            outputs={'value': value_output, 'attention_weights': attention_weights}
+        )
 
         return self.model
 
     def compile(self, learning_rate: float = 0.001):
-        if self.return_attention:
-            # Use MSE for value, dummy loss for attention_weights with 0 weight
-            # This ensures metrics are properly tracked
-            self.model.compile(
-                optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
-                loss={
-                    'value': 'mse',
-                    'attention_weights': 'mse'  # Dummy loss, weight is 0
-                },
-                loss_weights={
-                    'value': 1.0,
-                    'attention_weights': 0.0  # No contribution to total loss
-                },
-                metrics={'value': ['mae']}
-            )
-        else:
-            self.model.compile(
-                optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
-                loss='mse',
-                metrics=['mae']
-            )
-
-
-def create_attention_lstm_model(input_shape: tuple, lstm_units: int = 128,
-                                lstm_dropout: float = 0.2,
-                                learning_rate: float = 0.001,
-                                return_attention: bool = True) -> keras.Model:
-    model_builder = AttentionLSTMModel(
-        input_shape=input_shape,
-        lstm_units=lstm_units,
-        dropout=lstm_dropout,
-        return_attention=return_attention
-    )
-
-    model = model_builder.build()
-    model_builder.compile(learning_rate=learning_rate)
-
-    return model
+        """Compile model with MSE loss for value and dummy loss for attention weights."""
+        self.model.compile(
+            optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
+            loss={
+                'value': 'mse',
+                'attention_weights': 'mse'  # Dummy loss, weight is 0
+            },
+            loss_weights={
+                'value': 1.0,
+                'attention_weights': 0.0  # No contribution to total loss
+            },
+            metrics={'value': ['mae']}
+        )
