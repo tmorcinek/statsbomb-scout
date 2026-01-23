@@ -59,7 +59,7 @@ class TestCalculateXGValues:
         goals_df = goals(events)
 
         assert len(goals_df) == 3, "2:1 final score expected in sample data"
-        assert (calculate_xg_values(goals_df) == 1.0).all(), "Goal action should have value 1.0"
+        assert np.allclose(calculate_xg_values(goals_df), [0.048935, 0.783500, 0.035494], atol=1e-4), "Shots xG values mismatch"
 
     def test_shot_values(self, sample_game, xt_model):
         game, events = sample_game
