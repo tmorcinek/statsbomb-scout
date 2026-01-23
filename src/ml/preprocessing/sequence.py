@@ -48,18 +48,21 @@ class SequencePreprocessor:
         """
         Normalize features and convert to numpy array with one-hot encoding.
 
-        Features (total ~39):
+        Features (total 46):
         - Spatial (4): start_x, start_y, end_x, end_y normalized to [0,1]
         - Geometric (3): distance, sin(angle), cos(angle)
         - Temporal (1): time_diff capped at 10s
         - Contextual (3): under_pressure, counterpress, opposite_action
-        - Categorical (~28): one-hot encoded type_id, result_id, bodypart_id
+        - Categorical (35): one-hot encoded
+          - type_id (23): action type
+          - result_id (6): result type
+          - bodypart_id (6): body part used
 
         Args:
             features_df: DataFrame with extracted features
 
         Returns:
-            Normalized feature array of shape (n_actions, ~39)
+            Normalized feature array of shape (n_actions, 46)
         """
         # One-hot encoding dimensions
         n_types = len(spadl_config.actiontypes)
