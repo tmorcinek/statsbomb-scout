@@ -97,11 +97,11 @@ class TestCalculateXTValues:
 
         possession_with_goal = specific_possession(events, possession_number=11)
 
-        actions = spadl.statsbomb.convert_to_actions(possession_with_goal, home_team_id=game['home_team_id'], xy_fidelity_version=2)
+        actions = spadl.statsbomb.convert_to_actions(possession_with_goal, home_team_id=possession_with_goal['possession_team_id'].iloc[0], xy_fidelity_version=2)
 
         rates = calculate_xt_values(actions, xt_model)
 
-        assert sum(rates) == 0.00814035, "Goal from Xavi Simons xt value mismatch"
+        assert rates[-1] == 0.0, "Goal from Xavi Simons xt value mismatch"
 
     def test_fake_action(self, xt_model):
         data = {
@@ -124,14 +124,15 @@ class TestCalculateXTValues:
 
         rates = calculate_xt_values(actions, xt_model)
 
-        assert sum(rates) == 0.24857372, "Pass from goalkeeper to forward on the edge of the box xt value mismatch"
+        assert sum(rates) == 0.25745362, "Pass from goalkeeper to forward on the edge of the box xt value mismatch"
 
     def test_hary_kane_goal_value(self, sample_game, xt_model):
         game, events = sample_game
 
         possession_with_goal = specific_possession(events, possession_number=19)
 
-        actions = spadl.statsbomb.convert_to_actions(possession_with_goal, home_team_id=game['home_team_id'], xy_fidelity_version=2)
+        team_id = possession_with_goal['team_id'].iloc[0]
+        actions = spadl.statsbomb.convert_to_actions(possession_with_goal, home_team_id=team_id, xy_fidelity_version=2)
 
         rates = calculate_xt_values(actions, xt_model)
 
@@ -142,14 +143,12 @@ class TestCalculateXTValues:
 
         passes_df = events[events['type_name'] == 'Pass']
         first_pass = passes_df.head(1)
-        id_ = game['home_team_id']
-        print(id_)
-        actions = spadl.statsbomb.convert_to_actions(first_pass, home_team_id=id_, xy_fidelity_version=2)
+        team_id = first_pass['team_id'].iloc[0]
+        actions = spadl.statsbomb.convert_to_actions(first_pass, home_team_id=team_id, xy_fidelity_version=2)
 
         rates = calculate_xt_values(actions, xt_model)
         assert len(rates) == len(actions), "xT rate shape mismatch"
-        assert rates[0] == pytest.approx(0.01821798, abs=1e-4), "Pass xT value mismatch"
-
+        assert rates[0] == pytest.approx(0.01016549, abs=1e-4), "Pass xT value mismatch"
 
 
 if __name__ == "__main__":

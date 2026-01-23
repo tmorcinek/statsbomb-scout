@@ -216,6 +216,16 @@ def test_create_label_from_goal(preprocessor, actions):
     assert label == 0.04893475, "Label value does not match!"
 
 
+def test_create_label_from_penalty(preprocessor, actions):
+    goal_possession = actions[109]
+    shot_features = preprocessor._update_action(goal_possession).tail(8)
+
+    label = preprocessor._create_label(shot_features)
+    shot_features = shot_features[['original_event_id', 'xG', 'xT', 'type_name', 'player_name', 'opposite_action']]
+
+    print(f"Goal Possession Actions: \n{shot_features}")
+
+
 def test_watkins_goal_xg(sample_game):
     game, events = sample_game
 
