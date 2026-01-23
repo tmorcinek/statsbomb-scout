@@ -31,12 +31,17 @@ def calculate_xt_values(actions: pd.DataFrame, xt_model: ExpectedThreat) -> ndar
     move_actions = get_move_actions(actions)
 
     grid = xt_model.xT
-    # startxc, startyc = _get_cell_indexes(move_actions.start_x, move_actions.start_y, xt_model.l, xt_model.w)
-    endxc, endyc = _get_cell_indexes(move_actions.end_x, move_actions.end_y, xt_model.l, xt_model.w)
+    # Calculate xT for move_actions based on end position
+    if len(move_actions) > 0:
+        endxc, endyc = _get_cell_indexes(move_actions.end_x, move_actions.end_y, xt_model.l, xt_model.w)
+        xT_end = grid[endyc.rsub(xt_model.w - 1), endxc]
+        ratings[move_actions.index] = xT_end
 
-    # xT_start = grid[startyc.rsub(xt_model.w - 1), startxc]
-    xT_end = grid[endyc.rsub(xt_model.w - 1), endxc]
-
-    ratings[move_actions.index] = xT_end
+    # Calculate xT for non-move actions based on start position
+    non_move_actions = actions[~actions.index.isin(move_actions.index)]
+    if len(non_move_actions) > 0:
+        startxc, startyc = _get_cell_indexes(non_move_actions.start_x, non_move_actions.start_y, xt_model.l, xt_model.w)
+        xT_start = grid[startyc.rsub(xt_model.w - 1), startxc]
+        ratings[non_move_actions.index] = xT_start
 
     return ratings

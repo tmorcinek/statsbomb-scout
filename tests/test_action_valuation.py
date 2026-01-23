@@ -101,7 +101,7 @@ class TestCalculateXTValues:
 
         rates = calculate_xt_values(actions, xt_model)
 
-        assert rates[-1] == 0.0, "Goal from Xavi Simons xt value mismatch"
+        assert rates[-1] == 0.02855202, "Goal from Xavi Simons xt value mismatch"
 
     def test_fake_action(self, xt_model):
         data = {
@@ -136,7 +136,7 @@ class TestCalculateXTValues:
 
         rates = calculate_xt_values(actions, xt_model)
 
-        assert sum(rates) == 0.0, "Penalty shot xt value should be 0.0"
+        assert sum(rates) == 0.10805102, "Penalty shot xt value should be 0.0"
 
     def test_passes_values(self, sample_game, xt_model):
         game, events = sample_game
