@@ -145,9 +145,7 @@ class SequencePreprocessor:
         for pid, actions_df in self._extract_actions(match, events_df).items():
             features = self._update_action(actions_df)
 
-            normalized_features = self._normalize_features(features)
-
-            sequence = self._create_simple_sequence(normalized_features)
+            sequence = self._create_simple_sequence(self._normalize_features(features))
 
             label = self._create_label(features.tail(self.sequence_length))
 

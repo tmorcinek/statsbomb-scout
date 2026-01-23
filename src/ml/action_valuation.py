@@ -24,21 +24,3 @@ def calculate_xg_values(events: pd.DataFrame) -> pd.Series:
 
 def calculate_xt_values(actions: pd.DataFrame, xt_model: ExpectedThreat) -> ndarray[Any, dtype[floating[_64Bit]]]:
     return np.nan_to_num(xt_model.rate(actions), nan=0.0)
-
-
-def extract_label_from_last_action(actions_df: pd.DataFrame) -> np.ndarray:
-    """
-    Extract label from the last action's pre-calculated value.
-
-    Assumes actions_df has a 'value' column calculated by calculate_action_values().
-
-    Args:
-        actions_df: DataFrame with actions and 'value' column
-
-    Returns:
-        np.ndarray: Single-element array with the last action's value
-    """
-    if 'value' not in actions_df.columns:
-        raise ValueError("actions_df must have 'value' column. Call calculate_action_values() first.")
-
-    return np.array([actions_df['value'].iloc[-1]], dtype=np.float32)

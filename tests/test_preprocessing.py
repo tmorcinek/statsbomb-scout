@@ -216,6 +216,20 @@ def test_create_label_from_goal(preprocessor, actions):
     assert label == 0.04893475, "Label value does not match!"
 
 
+def test_watkins_goal_xg(sample_game):
+    game, events = sample_game
+
+    watkins_goal_event = events[events['event_id'] == '42dc6a40-991d-4a08-9aa1-64c2dd8a807e'].iloc[0]
+
+    extra = watkins_goal_event['extra']
+    shot = extra['shot']
+    assert shot.get('statsbomb_xg', 'N/A') == 0.035494413, "xG does not match!"
+    assert shot.get('body_part', {}).get('name', 'N/A') == 'Right Foot', "Body part does not match!"
+    assert shot.get('technique', {}).get('name', 'N/A') == 'Normal', "Technique does not match!"
+    assert shot.get('type', {}).get('name', 'N/A') == 'Open Play', "Shot type does not match!"
+    assert shot.get('outcome', {}).get('name', 'N/A') == 'Goal', "Outcome does not match!"
+
+
 def test_process_match(sample_game, preprocessor):
     match, events = sample_game
     match_id = match.get('game_id', match.name)
