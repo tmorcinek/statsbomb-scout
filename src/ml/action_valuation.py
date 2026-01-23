@@ -45,3 +45,9 @@ def calculate_xt_values(actions: pd.DataFrame, xt_model: ExpectedThreat) -> ndar
         ratings[non_move_actions.index] = xT_start
 
     return ratings
+
+
+def get_actions_value(actions_df: pd.DataFrame) -> float:
+    total_xg = actions_df['xG'].sum()
+    xt = actions_df['xT'].iloc[-1]
+    return max(total_xg, xt)

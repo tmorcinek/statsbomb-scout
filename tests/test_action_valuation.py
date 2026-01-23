@@ -6,7 +6,7 @@ import pytest
 import socceraction.spadl as spadl
 from socceraction.data.statsbomb import StatsBombLoader
 
-from src.ml.action_valuation import calculate_xg_values, calculate_xt_values
+from src.ml.action_valuation import calculate_xg_values, calculate_xt_values, get_actions_value
 from src.ml.xthreat import get_default_xt_model
 
 pd.set_option('display.width', 1000)
@@ -97,7 +97,8 @@ class TestCalculateXTValues:
 
         possession_with_goal = specific_possession(events, possession_number=11)
 
-        actions = spadl.statsbomb.convert_to_actions(possession_with_goal, home_team_id=possession_with_goal['possession_team_id'].iloc[0], xy_fidelity_version=2)
+        actions = spadl.statsbomb.convert_to_actions(possession_with_goal, home_team_id=possession_with_goal['possession_team_id'].iloc[0],
+                                                     xy_fidelity_version=2)
 
         rates = calculate_xt_values(actions, xt_model)
 
@@ -117,14 +118,18 @@ class TestCalculateXTValues:
             'end_y': [36.2525],
             'type_id': [0],  # Pass
             'result_id': [1],  # Complete
+            'xG': 0.0543,  # Complete
             # 'bodypart_id': [2],
             # 'action_id': [0]
         }
         actions = pd.DataFrame(data)
 
         rates = calculate_xt_values(actions, xt_model)
+        actions['xT'] = rates
 
         assert sum(rates) == 0.25745362, "Pass from goalkeeper to forward on the edge of the box xt value mismatch"
+
+        assert get_actions_value(actions) == 0.25745362, "Value of the pass is equal to its xT value"
 
     def test_hary_kane_goal_value(self, sample_game, xt_model):
         game, events = sample_game

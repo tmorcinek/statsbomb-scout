@@ -8,7 +8,7 @@ import pandas as pd
 import socceraction.spadl.config as spadl_config
 from socceraction.xthreat import ExpectedThreat
 
-from src.ml.action_valuation import calculate_xt_values
+from src.ml.action_valuation import calculate_xt_values, get_actions_value
 from src.ml.preprocessing.possessions_extraction import extract_possessions
 from src.ml.xthreat import get_default_xt_model
 
@@ -130,10 +130,7 @@ class SequencePreprocessor:
         return features[-self.sequence_length:].reshape(1, self.sequence_length, -1)
 
     def _create_label(self, actions_df: pd.DataFrame) -> float:
-        """Create label for possession by comparing total xG and xT."""
-        total_xg = actions_df['xG'].sum()
-        total_xt = actions_df['xT'].sum()
-        return max(total_xg, total_xt)
+        return get_actions_value(actions_df)
 
     def process_match(self, match_id: int, match: pd.Series, events_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         print(f"→Processing match {match_id}: {len(events_df)} events")
