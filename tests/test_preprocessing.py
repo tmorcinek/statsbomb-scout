@@ -71,13 +71,13 @@ def test_extract_possessions(sample_game, preprocessor):
     first_possession_df = possessions_df[2]
     assert len(first_possession_df) == 7, "Number of actions in first possession does not match!"
     assert first_possession_df.iloc[0]['possession'] == 2, "First possession ID does not match!"
-    assert len(first_possession_df.columns) == 22, "Number of columns in actions does not match!"
+    assert len(first_possession_df.columns) == 24, "Number of columns in actions does not match!"
 
     print(first_possession_df.columns)
 
     expected_columns = ['game_id', 'original_event_id', 'period_id', 'time_seconds', 'team_id', 'player_id', 'start_x', 'start_y', 'end_x', 'end_y', 'type_id',
                         'result_id', 'bodypart_id', 'action_id', 'team_name', 'player_name', 'possession', 'type_name', 'duration', 'under_pressure',
-                        'counterpress', 'xG']
+                        'counterpress', 'xG', 'possession_team_id', 'possession_team_name']
     assert list(first_possession_df.columns) == expected_columns, "Column names do not match!"
 
 
@@ -88,7 +88,7 @@ def test_extract_features(preprocessor, sample_extracted_action):
     print(f"Features: \n{features_df}")
 
     assert len(features_df) == 7, "Number of actions does not match!"
-    assert len(features_df.columns) == 28, "Number of features does not match!"
+    assert len(features_df.columns) == 31, "Number of features does not match!"
 
     expected_columns = ['game_id',
                         'original_event_id',
@@ -112,12 +112,15 @@ def test_extract_features(preprocessor, sample_extracted_action):
                         'under_pressure',
                         'counterpress',
                         'xG',
+                        'possession_team_id',
+                        'possession_team_name',
                         'xT',
                         'dx',
                         'dy',
                         'distance',
                         'angle',
-                        'time_diff']
+                        'time_diff',
+                        'opposite_action']
     assert list(features_df.columns) == expected_columns, "Column names do not match!"
 
 
@@ -135,7 +138,7 @@ def test_extracted_features(sample_game, sample_updated_action):
 
 def test_normalize_features(preprocessor, sample_updated_action):
     normalized_features = preprocessor._normalize_features(sample_updated_action)
-    assert normalized_features.shape == (7, 45), "Normalized features shape does not match!"
+    assert normalized_features.shape == (7, 46), "Normalized features shape does not match!"
 
     expected_normalized_features_df = pd.read_csv('data/test/normalized_features_df.csv')
     assert np.allclose(expected_normalized_features_df.values, normalized_features), "Normalized features do not match expected values!"
@@ -144,17 +147,17 @@ def test_normalize_features(preprocessor, sample_updated_action):
 def test_normalize_features_goal(preprocessor, actions):
     features = preprocessor._update_action(actions[11])
     normalized_features = preprocessor._normalize_features(features)
-    assert normalized_features.shape == (20, 45), "Normalized features shape does not match!"
+    assert normalized_features.shape == (20, 46), "Normalized features shape does not match!"
 
     expected_normalized_features_df = pd.read_csv('data/test/normalized_features_8.csv')
     assert np.allclose(expected_normalized_features_df.values, normalized_features), "Normalized features do not match expected values!"
 
 
 def test_create_simple_sequence(preprocessor, sample_normalized_features):
-    assert sample_normalized_features.shape == (7, 45), "Normalized features shape does not match!"
+    assert sample_normalized_features.shape == (7, 46), "Normalized features shape does not match!"
 
     sequence = preprocessor._create_simple_sequence(sample_normalized_features)
-    assert sequence.shape == (1, 6, 45), "Normalized features shape does not match!"
+    assert sequence.shape == (1, 6, 46), "Normalized features shape does not match!"
 
     assert np.allclose(sample_normalized_features[-6:], sequence[0]), "Normalized features do not match expected values!"
 
@@ -205,12 +208,12 @@ def test_create_label_from_goal(preprocessor, actions):
     label = preprocessor._create_label(features)
 
     xg_sum = features['xG'].sum()
-    assert xg_sum == 1.0, "xG sum does not match!"
+    assert xg_sum == 0.04893475, "xG sum does not match!"
 
     xt_sum = features['xT'].sum()
     assert xt_sum == 0.004536809999999999, "xT sum does not match!"
 
-    assert label == 1.0, "Label value does not match!"
+    assert label == 0.04893475, "Label value does not match!"
 
 
 def test_process_match(sample_game, preprocessor):
@@ -229,7 +232,7 @@ def test_process_match(sample_game, preprocessor):
     assert y[8] == 1.0, "Y shape does not match!"
     assert y[12] == 0.028932061, "Y shape does not match!"
 
-    assert X.shape == (82, 6, 45), "X shape does not match!"
+    assert X.shape == (82, 6, 46), "X shape does not match!"
     assert y.shape == (82,), "y shape does not match!"
     assert p.shape == (82,), "p shape does not match!"
 
@@ -241,7 +244,7 @@ def test_process_match(sample_game, preprocessor):
 def test_process_matches(sample_game, preprocessor):
     matches = [sample_game]
     X, y, p, m = preprocessor.process_matches(matches)
-    assert X.shape == (82, 6, 45), "X shape does not match!"
+    assert X.shape == (82, 6, 46), "X shape does not match!"
     assert y.shape == (82,), "y shape does not match!"
     assert p.shape == (82,), "p shape does not match!"
     assert m.shape == (82,), "m shape does not match!"

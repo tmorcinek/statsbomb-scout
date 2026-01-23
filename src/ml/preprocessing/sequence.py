@@ -40,6 +40,7 @@ class SequencePreprocessor:
         action["angle"] = np.arctan2(action["dy"], action["dx"])
 
         action["time_diff"] = action["time_seconds"].diff().fillna(0.0)
+        action["opposite_action"] = (action["team_id"] != action["possession_team_id"]).astype(int)
 
         return action
 
@@ -47,18 +48,18 @@ class SequencePreprocessor:
         """
         Normalize features and convert to numpy array with one-hot encoding.
 
-        Features (total ~38):
+        Features (total ~39):
         - Spatial (4): start_x, start_y, end_x, end_y normalized to [0,1]
         - Geometric (3): distance, sin(angle), cos(angle)
         - Temporal (1): time_diff capped at 10s
-        - Contextual (2): under_pressure, counterpress
+        - Contextual (3): under_pressure, counterpress, opposite_action
         - Categorical (~28): one-hot encoded type_id, result_id, bodypart_id
 
         Args:
             features_df: DataFrame with extracted features
 
         Returns:
-            Normalized feature array of shape (n_actions, ~38)
+            Normalized feature array of shape (n_actions, ~39)
         """
         # One-hot encoding dimensions
         n_types = len(spadl_config.actiontypes)
@@ -83,7 +84,7 @@ class SequencePreprocessor:
         temporal = np.minimum(features_df['time_diff'].values / cap_time, 1.0).reshape(-1, 1)
 
         # 4. Contextual features (boolean to float)
-        contextual = features_df[['under_pressure', 'counterpress']].astype(float).values
+        contextual = features_df[['under_pressure', 'counterpress', 'opposite_action']].astype(float).values
 
         # 5. Categorical features (one-hot encoding)
         def one_hot_numpy(ids, K, dtype=np.uint8):
