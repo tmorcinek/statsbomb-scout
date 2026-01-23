@@ -141,14 +141,22 @@ class SequencePreprocessor:
 
         for pid, actions_df in self._extract_actions(match, events_df).items():
             features = self._update_action(actions_df)
+            normalized_features = self._normalize_features(features)
 
-            sequence = self._create_simple_sequence(self._normalize_features(features))
+            # Create multiple overlapping sequences using sliding window
+            sequences = self._create_sequences(normalized_features)
 
-            label = self._create_label(features.tail(self.sequence_length))
+            # Generate label for each sequence based on the last action in that sequence
+            for seq_idx, sequence in enumerate(sequences):
+                # The last action in this sequence is at index (seq_idx + self.sequence_length - 1)
+                end_action_idx = seq_idx + self.sequence_length - 1
+                sequence_actions = features.iloc[seq_idx:end_action_idx + 1]
 
-            all_sequences.append(sequence)
-            labels.append(label)
-            possession_ids.append(pid)
+                label = self._create_label(sequence_actions)
+
+                all_sequences.append(sequence.reshape(1, self.sequence_length, -1))
+                labels.append(label)
+                possession_ids.append(pid)
 
         X = np.concatenate(all_sequences)
         y = np.array(labels)

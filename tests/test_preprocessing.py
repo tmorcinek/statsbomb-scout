@@ -264,6 +264,16 @@ def test_process_match(sample_game, preprocessor):
     expected_p = np.array(keys, dtype=np.int32)
     assert np.array_equal(p, expected_p), "P values (possession IDs) do not match!"
 
+def test_process_match_number_of_possessions(sample_game, preprocessor):
+    match, events = sample_game
+    match_id = match.get('game_id', match.name)
+
+    X, y, p = preprocessor.process_match(match_id, match, events)
+
+    assert X.shape == (1642, 6, 46), "X shape does not match!"
+    assert y.shape == (1642,), "y shape does not match!"
+    assert p.shape == (1642,), "p shape does not match!"
+
 
 def test_process_matches(sample_game, preprocessor):
     matches = [sample_game]
