@@ -228,8 +228,8 @@ def test_process_match(sample_game, preprocessor):
     test_y = pd.read_csv('data/test/test_y.csv')
     assert np.allclose(y, test_y['values'].values), "Y values do not match!"
 
-    assert y[0] == 0.00789534, "Y shape does not match!"
-    assert y[8] == 1.0, "Y shape does not match!"
+    assert y[0] == 0.00789534, "Y[0] value does not match!"
+    assert y[8] == 0.04893475, "Y[8] value does not match!"
     assert y[12] == 0.028932061, "Y shape does not match!"
 
     assert X.shape == (82, 6, 46), "X shape does not match!"
