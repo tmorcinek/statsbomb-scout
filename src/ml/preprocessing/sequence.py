@@ -1,6 +1,7 @@
 """Module for preprocessing event data into sequences."""
 
 import warnings
+from enum import Enum
 from typing import Tuple, Iterable
 
 import numpy as np
@@ -14,6 +15,11 @@ from src.ml.xthreat import get_default_xt_model
 
 warnings.filterwarnings('ignore', category=FutureWarning, module='socceraction')
 pd.set_option('future.no_silent_downcasting', True)
+
+
+class PreprocessingMode(Enum):
+    TRAINING = "training"
+    VALIDATION = "validation"
 
 
 class SequencePreprocessor:
@@ -124,8 +130,9 @@ class SequencePreprocessor:
     def _create_label(self, actions_df: pd.DataFrame) -> float:
         return get_actions_value(actions_df)
 
-    def process_match(self, match_id: int, match: pd.Series, events_df: pd.DataFrame, mode: str = "training") -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        print(f"→Processing match {match_id}: {len(events_df)} events (mode: {mode})")
+    def process_match(self, match_id: int, match: pd.Series, events_df: pd.DataFrame, mode: PreprocessingMode = PreprocessingMode.TRAINING) -> Tuple[
+        np.ndarray, np.ndarray, np.ndarray]:
+        print(f"→Processing match {match_id}: {len(events_df)} events (mode: {mode.value})")
 
         all_sequences = []
         labels = []
@@ -135,7 +142,7 @@ class SequencePreprocessor:
             features = self._update_action(actions_df)
             normalized_features = self._normalize_features(features)
 
-            if mode == "training":
+            if mode == PreprocessingMode.TRAINING:
                 sequences = self._create_sequences(normalized_features)
                 for i, seq in enumerate(sequences):
                     window_actions = features.iloc[i:i + self.sequence_length]
@@ -156,13 +163,14 @@ class SequencePreprocessor:
 
         return X, y, p
 
-    def process_matches(self, matches: Iterable[Tuple[pd.Series, pd.DataFrame]], mode: str = "training") -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def process_matches(self, matches: Iterable[Tuple[pd.Series, pd.DataFrame]], mode: PreprocessingMode = PreprocessingMode.TRAINING) -> Tuple[
+        np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         results = [
-            (X, y, p,  np.full_like(p, m["game_id"]))
+            (X, y, p, np.full_like(p, m["game_id"]))
             for m, e in matches
             for X, y, p in [self.process_match(m["game_id"], m, e, mode=mode)]
         ]
         X, y, p, m = map(np.concatenate, zip(*results))
 
-        print(f"\nTotal sequences from all matches: {len(X)} (mode: {mode})")
+        print(f"\nTotal sequences from all matches: {len(X)} (mode: {mode.value})")
         return X, y, p, m

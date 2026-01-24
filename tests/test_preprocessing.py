@@ -7,7 +7,7 @@ import socceraction.spadl as spadl
 from src.analysis.visualization import plot_possession_actions
 from src.data.data_loader import load_statsbomb_socceraction_data
 from src.ml.preprocessing.possessions_extraction import extract_possessions
-from src.ml.preprocessing.sequence import SequencePreprocessor
+from src.ml.preprocessing.sequence import SequencePreprocessor, PreprocessingMode
 from src.ml.xthreat import get_default_xt_model
 
 SEQUENCE_LENGTH = 6
@@ -244,7 +244,7 @@ def test_process_match(sample_game, preprocessor):
     match, events = sample_game
     match_id = match.get('game_id', match.name)
 
-    X, y, p = preprocessor.process_match(match_id, match, events)
+    X, y, p = preprocessor.process_match(match_id, match, events, mode=PreprocessingMode.VALIDATION)
 
     expected_normalized_features_df = pd.read_csv('data/test/normalized_features_df.csv').tail(SEQUENCE_LENGTH)
     assert np.allclose(expected_normalized_features_df.values, X[0]), "Normalized features do not match expected values!"
@@ -277,7 +277,7 @@ def test_process_match_number_of_possessions(sample_game, preprocessor):
 
 def test_process_matches(sample_game, preprocessor):
     matches = [sample_game]
-    X, y, p, m = preprocessor.process_matches(matches)
+    X, y, p, m = preprocessor.process_matches(matches, mode=PreprocessingMode.VALIDATION)
     assert X.shape == (82, 6, 46), "X shape does not match!"
     assert y.shape == (82,), "y shape does not match!"
     assert p.shape == (82,), "p shape does not match!"
