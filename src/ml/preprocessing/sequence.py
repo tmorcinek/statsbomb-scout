@@ -132,8 +132,8 @@ class SequencePreprocessor:
     def _create_label(self, actions_df: pd.DataFrame) -> float:
         return get_actions_value(actions_df)
 
-    def process_match(self, match_id: int, match: pd.Series, events_df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        print(f"→Processing match {match_id}: {len(events_df)} events")
+    def process_match(self, match_id: int, match: pd.Series, events_df: pd.DataFrame, mode: str = "training") -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        print(f"→Processing match {match_id}: {len(events_df)} events (mode: {mode})")
 
         all_sequences = []
         labels = []
@@ -143,18 +143,19 @@ class SequencePreprocessor:
             features = self._update_action(actions_df)
             normalized_features = self._normalize_features(features)
 
-            # Create multiple overlapping sequences using sliding window
-            sequences = self._create_sequences(normalized_features)
-
-            # Generate label for each sequence based on the last action in that sequence
-            for seq_idx, sequence in enumerate(sequences):
-                # The last action in this sequence is at index (seq_idx + self.sequence_length - 1)
-                end_action_idx = seq_idx + self.sequence_length - 1
-                sequence_actions = features.iloc[seq_idx:end_action_idx + 1]
-
-                label = self._create_label(sequence_actions)
-
-                all_sequences.append(sequence.reshape(1, self.sequence_length, -1))
+            if mode == "training":
+                sequences = self._create_sequences(normalized_features)
+                for seq_idx, sequence in enumerate(sequences):
+                    end_action_idx = seq_idx + self.sequence_length - 1
+                    sequence_actions = features.iloc[seq_idx:end_action_idx + 1]
+                    label = self._create_label(sequence_actions)
+                    all_sequences.append(sequence.reshape(1, self.sequence_length, -1))
+                    labels.append(label)
+                    possession_ids.append(pid)
+            else:
+                sequence = self._create_simple_sequence(normalized_features)
+                label = self._create_label(features.tail(self.sequence_length))
+                all_sequences.append(sequence)
                 labels.append(label)
                 possession_ids.append(pid)
 
@@ -165,13 +166,13 @@ class SequencePreprocessor:
 
         return X, y, p
 
-    def process_matches(self, matches: Iterable[Tuple[pd.Series, pd.DataFrame]]) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def process_matches(self, matches: Iterable[Tuple[pd.Series, pd.DataFrame]], mode: str = "training") -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         results = [
             (X, y, p,  np.full_like(p, m["game_id"]))
             for m, e in matches
-            for X, y, p in [self.process_match(m["game_id"], m, e)]
+            for X, y, p in [self.process_match(m["game_id"], m, e, mode=mode)]
         ]
         X, y, p, m = map(np.concatenate, zip(*results))
 
-        print(f"\nTotal sequences from all matches: {len(X)}")
+        print(f"\nTotal sequences from all matches: {len(X)} (mode: {mode})")
         return X, y, p, m
