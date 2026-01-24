@@ -116,17 +116,9 @@ class SequencePreprocessor:
         ], axis=1).astype(np.float32)
 
     def _create_sequences(self, features: np.ndarray) -> np.ndarray:
-        """Create overlapping sequences using sliding window, returning shape (n_sequences, sequence_length, n_features)."""
-        if len(features) < self.sequence_length:
-            raise ValueError(f"Insufficient number of actions ({len(features)}) for sequence length {self.sequence_length}.")
-
         return np.lib.stride_tricks.sliding_window_view(features, (self.sequence_length, features.shape[1])).squeeze(1)
 
     def _create_simple_sequence(self, features: np.ndarray) -> np.ndarray:
-        """Create single sequence from last N actions, returning shape (1, sequence_length, n_features)."""
-        if len(features) < self.sequence_length:
-            raise ValueError(f"Insufficient number of actions ({len(features)}) for sequence length {self.sequence_length}.")
-
         return features[-self.sequence_length:].reshape(1, self.sequence_length, -1)
 
     def _create_label(self, actions_df: pd.DataFrame) -> float:
@@ -145,13 +137,11 @@ class SequencePreprocessor:
 
             if mode == "training":
                 sequences = self._create_sequences(normalized_features)
-                for seq_idx, sequence in enumerate(sequences):
-                    end_action_idx = seq_idx + self.sequence_length - 1
-                    sequence_actions = features.iloc[seq_idx:end_action_idx + 1]
-                    label = self._create_label(sequence_actions)
-                    all_sequences.append(sequence.reshape(1, self.sequence_length, -1))
-                    labels.append(label)
+                for i, seq in enumerate(sequences):
+                    window_actions = features.iloc[i:i + self.sequence_length]
+                    labels.append(self._create_label(window_actions))
                     possession_ids.append(pid)
+                all_sequences.append(sequences)
             else:
                 sequence = self._create_simple_sequence(normalized_features)
                 label = self._create_label(features.tail(self.sequence_length))
