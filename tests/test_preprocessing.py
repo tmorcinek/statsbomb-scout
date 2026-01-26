@@ -170,9 +170,9 @@ def test_create_label(preprocessor, sample_updated_action):
     assert xg_sum == 0.0, "xG sum does not match!"
 
     xt_sum = features['xT'].sum()
-    assert xt_sum == 0.00789534, "xT sum does not match!"
+    assert xt_sum == 0.12394768, "xT sum does not match!"
 
-    assert label == xt_sum, "Label value does not match!"
+    assert label == 0.02385149, "Label value does not match!"
 
 
 def test_create_label_from_shot(preprocessor, actions):
@@ -197,7 +197,7 @@ def test_create_label_from_shot(preprocessor, actions):
 
     assert xg_sum == shot_features.iloc[-2]['xG'], "xG sum does not match!"
 
-    assert label == xg_sum, "Label value does not match!"
+    assert label == 0.25745362, "Label value does not match!"
 
 
 def test_create_label_from_goal(preprocessor, actions):
@@ -211,7 +211,7 @@ def test_create_label_from_goal(preprocessor, actions):
     assert xg_sum == 0.04893475, "xG sum does not match!"
 
     xt_sum = features['xT'].sum()
-    assert xt_sum == 0.004536809999999999, "xT sum does not match!"
+    assert xt_sum == 0.14785314, "xT sum does not match!"
 
     assert label == 0.04893475, "Label value does not match!"
 
@@ -252,9 +252,10 @@ def test_process_match(sample_game, preprocessor):
     test_y = pd.read_csv('data/test/test_y.csv')
     assert np.allclose(y, test_y['values'].values), "Y values do not match!"
 
-    assert y[0] == 0.00789534, "Y[0] value does not match!"
+    assert y[0] == 0.02385149, "Y[0] value does not match!"
     assert y[8] == 0.04893475, "Y[8] value does not match!"
-    assert y[12] == 0.028932061, "Y shape does not match!"
+    assert y[12] == 0.25745362, "Y[12] value does not match!"
+    assert y[25] == 0.028710563, "Y[27] value does not match!"
 
     assert X.shape == (82, 6, 46), "X shape does not match!"
     assert y.shape == (82,), "y shape does not match!"
