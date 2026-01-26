@@ -8,7 +8,7 @@ import socceraction.spadl.config as spadl_config
 from mplsoccer.soccer.pitch import VerticalPitch
 from pandas import DataFrame
 
-from src.analysis.game_utils import get_action_outcomes
+from src.analysis.game_utils import get_action_outcomes, get_period_offset
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -99,8 +99,7 @@ def _default_title(possession_actions: DataFrame) -> str:
     possession_length = len(possession_actions)
     period_id = first_action['period_id']
 
-    period_offsets = {1: 0, 2: 45, 3: 90, 4: 105, 5: 120}
-    offset = period_offsets.get(period_id, 0) * 60
+    offset = get_period_offset(period_id)
     time_start_seconds = int(first_action['time_seconds']) + offset
     time_end_seconds = int(last_action['time_seconds']) + offset
     formatted = f"{time_start_seconds // 60:02d}:{time_start_seconds % 60:02d}"
@@ -116,7 +115,7 @@ def _default_title(possession_actions: DataFrame) -> str:
     period_name = period_names.get(period_id, "Unknown")
     outcome = get_action_outcomes(possession_actions)
 
-    return f"PID #{first_action['possession']} ({possession_length}↔), {first_action['possession_team_name']}, {period_name}, {formatted} - {end_formatted}\n{outcome}"
+    return f"PID #{first_action['possession']} ({possession_length}↔), {first_action['possession_team_name']}, {period_name}, {formatted} - {end_formatted}\n[{outcome}]"
 
 
 def _title_with_value(possession_actions: DataFrame, predicted_value: float, attention_weights: np.ndarray = None) -> str:
@@ -138,7 +137,7 @@ def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame], title
     if titles is not None and len(titles) != num_possessions:
         raise ValueError(f"titles length ({len(titles)}) must match possession_actions_list length ({num_possessions})")
 
-    cols = math.ceil(math.sqrt(num_possessions)) + 1
+    cols = math.ceil(math.sqrt(num_possessions))
     rows = math.ceil(num_possessions / cols)
 
     figsize = (6 * cols, 6 * rows)

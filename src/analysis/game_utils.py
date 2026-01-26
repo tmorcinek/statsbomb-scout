@@ -11,6 +11,11 @@ def game_summary(game: pd.Series) -> str:
     return f"{home_team} {home_score} : {away_score} {away_team} ({game['competition_stage']}) [{formatted_date}]"
 
 
+def get_period_offset(period_id: int) -> int:
+    period_offsets = {1: 0, 2: 45, 3: 90, 4: 105, 5: 120}
+    return period_offsets.get(period_id, 0) * 60
+
+
 def get_action_outcomes(possession_actions: pd.DataFrame) -> str:
     has_goal = False
     has_shot = False
@@ -28,10 +33,10 @@ def get_action_outcomes(possession_actions: pd.DataFrame) -> str:
             has_foul = True
 
     if has_goal:
-        return "[Goal]"
+        return "Goal"
     elif has_shot:
-        return "[Shot]"
+        return "Shot"
     elif has_foul:
-        return "[Foul]"
+        return "Foul"
     else:
-        return "[Pass]"
+        return "Pass"

@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame, Series
 
-from src.analysis.game_utils import game_summary
+from src.analysis.game_utils import game_summary, get_action_outcomes, get_period_offset
 from src.analysis.visualization import plot_multiple_possessions, _title_with_value
 from src.ml.preprocessing.possessions_extraction import extract_possessions, tail_dataframes_to_sequence_length
 
@@ -62,6 +62,71 @@ def normalize_predictions(predictions) -> Tuple[np.ndarray, Optional[np.ndarray]
     if isinstance(predictions, dict):
         return predictions['value'].flatten(), predictions['attention_weights']
     return predictions.flatten(), None
+
+
+def _build_possession_row(possession: DataFrame, idx: int, possession_id: int, game_id: int,
+                          predicted_values: np.ndarray, attention_weights: Optional[np.ndarray]) -> dict:
+    first_action = possession.iloc[0]
+    last_action = possession.iloc[-1]
+
+    offset = get_period_offset(first_action['period_id'])
+
+    start_time = int(first_action['time_seconds']) + offset
+    end_time = int(last_action['time_seconds']) + offset
+
+    outcome = get_action_outcomes(possession)
+    weights_str = str(list(attention_weights[idx])) if attention_weights is not None else None
+
+    return {
+        'possession_id': possession_id,
+        'value': predicted_values[idx],
+        'attention_weights': weights_str,
+        'game_id': game_id,
+        'team_id': int(first_action['possession_team_id']),
+        'team_name': first_action.get('possession_team_name', 'Unknown'),
+        'period': int(first_action['period_id']),
+        'time_start': start_time,
+        'time_end': end_time,
+        'outcome': outcome
+    }
+
+
+def create_top_possessions_df(selected_match: Series, selected_events: DataFrame, p_match: np.ndarray,
+                              predicted_values: np.ndarray, attention_weights: Optional[np.ndarray],
+                              top_n: int) -> DataFrame:
+    top_indices = get_top_indices(predicted_values, top_n)
+    possessions_dict = extract_possessions(selected_match, selected_events)
+    game_id = selected_match.get('game_id', selected_match.get('match_id', 'N/A'))
+
+    data = []
+    for idx in top_indices:
+        possession_id = p_match[idx]
+        possession = possessions_dict[possession_id]
+
+        row = _build_possession_row(possession, idx, possession_id, game_id, predicted_values, attention_weights)
+        data.append(row)
+
+    return pd.DataFrame(data)
+
+
+def create_top_possessions_df_matches(game_possessions_list: List[Tuple[Series, dict]], p_match: np.ndarray,
+                                     match_ids: np.ndarray, predicted_values: np.ndarray,
+                                     attention_weights: Optional[np.ndarray], top_n: int) -> DataFrame:
+    top_indices = get_top_indices(predicted_values, top_n)
+
+    data = []
+    for idx in top_indices:
+        possession_id = p_match[idx]
+        match_id = int(match_ids[idx])
+
+        match, possessions = [item for item in game_possessions_list if item[0]['game_id'] == match_id][0]
+        possession = possessions[possession_id]
+
+        row = _build_possession_row(possession, idx, possession_id, match_id, predicted_values, attention_weights)
+        data.append(row)
+
+    return pd.DataFrame(data)
+
 
 
 def visualize_top_possessions(selected_match: Series, selected_events: DataFrame, p_match: np.ndarray,
