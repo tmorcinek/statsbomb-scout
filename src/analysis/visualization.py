@@ -8,6 +8,8 @@ import socceraction.spadl.config as spadl_config
 from mplsoccer.soccer.pitch import VerticalPitch
 from pandas import DataFrame
 
+from src.analysis.game_utils import get_action_outcomes
+
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_colwidth', None)
@@ -112,8 +114,9 @@ def _default_title(possession_actions: DataFrame) -> str:
         5: "Penalty Shootout"
     }
     period_name = period_names.get(period_id, "Unknown")
+    outcome = get_action_outcomes(possession_actions)
 
-    return f"Possession #{first_action['possession']} ({possession_length}↔), {first_action['possession_team_name']}, {period_name}, {formatted} - {end_formatted}"
+    return f"PID #{first_action['possession']} ({possession_length}↔), {first_action['possession_team_name']}, {period_name}, {formatted} - {end_formatted}\n{outcome}"
 
 
 def _title_with_value(possession_actions: DataFrame, predicted_value: float, attention_weights: np.ndarray = None) -> str:
