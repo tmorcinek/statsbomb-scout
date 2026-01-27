@@ -18,37 +18,37 @@ pd.set_option('display.max_columns', None)
 
 
 @pytest.fixture(scope="module")
-def sample_game():
+def sample_game() -> tuple[pd.Series, pd.DataFrame]:
     return next(load_statsbomb_socceraction_data("data/statsbomb/data", 55, 282))
 
 
 @pytest.fixture(scope="module")
-def preprocessor():
+def preprocessor() -> SequencePreprocessor:
     return SequencePreprocessor(sequence_length=SEQUENCE_LENGTH, xt_model=get_default_xt_model())
 
 
 @pytest.fixture(scope="module")
-def actions(sample_game, preprocessor):
+def actions(sample_game, preprocessor) -> dict[int, pd.DataFrame]:
     return preprocessor._extract_actions(*sample_game)
 
 
 @pytest.fixture(scope="module")
-def sample_extracted_action(actions):
+def sample_extracted_action(actions) -> pd.DataFrame:
     return actions[2]
 
 
 @pytest.fixture(scope="module")
-def sample_updated_action(preprocessor, sample_extracted_action):
+def sample_updated_action(preprocessor, sample_extracted_action) -> pd.DataFrame:
     return preprocessor._update_action(sample_extracted_action)
 
 
 @pytest.fixture(scope="module")
-def shot_action(preprocessor, actions):
+def shot_action(preprocessor, actions) -> pd.DataFrame:
     return preprocessor._update_action(actions[17])
 
 
 @pytest.fixture(scope="module")
-def sample_normalized_features(preprocessor, sample_updated_action):
+def sample_normalized_features(preprocessor, sample_updated_action) -> np.ndarray:
     return preprocessor._normalize_features(sample_updated_action)
 
 
