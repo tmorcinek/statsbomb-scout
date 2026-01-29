@@ -12,9 +12,14 @@ def test_lstm_padding_invariance():
     """
     Test inwariancji na padding dla LSTM.
 
-    Sprawdza czy predykcja sekwencji długości 7 jest taka sama
-    jak predykcja tej samej sekwencji z paddingiem do długości 10.
-    Dzięki maskowaniu wyniki powinny być niemal identyczne.
+    Założenie: jeden model LSTM ze zmienną długością sekwencji Input(shape=(None, num_features)).
+
+    Zadanie: porównanie predykcji dla:
+    - sekwencji długości 7 (prawdziwe dane)
+    - tej samej sekwencji z paddingiem do długości 10 (uzupełnione zerami 0.0)
+
+    Oczekiwanie: dzięki Masking(mask_value=0.0), predykcje powinny być
+    niemal identyczne (padding nie powinien wpływać na wynik).
     """
     original_length = 7
     padded_length = 10
@@ -28,40 +33,26 @@ def test_lstm_padding_invariance():
     X_padded[0, :original_length, :] = X_original[0]  # Skopiuj oryginalne dane
     X_padded[0, original_length:, :] = 0.0  # Padding
 
-    # Zbuduj model dla oryginalnej długości
-    lstm_model_original = LSTMSequenceModel(
-        input_shape=(original_length, num_features),
+    # Zbuduj jeden model ze zmienną długością sekwencji
+    lstm_model = LSTMSequenceModel(
+        input_shape=(None, num_features),  # None oznacza zmienną długość
         lstm_units=32,
         dropout=0.0  # Bez dropout dla deterministycznego wyniku
     )
-    model_original = lstm_model_original.build()
-    lstm_model_original.compile(learning_rate=0.001)
+    model = lstm_model.build()
+    lstm_model.compile(learning_rate=0.001)
 
-    # Zbuduj model dla paddingowanej długości
-    lstm_model_padded = LSTMSequenceModel(
-        input_shape=(padded_length, num_features),
-        lstm_units=32,
-        dropout=0.0  # Bez dropout dla deterministycznego wyniku
-    )
-    model_padded = lstm_model_padded.build()
-    lstm_model_padded.compile(learning_rate=0.001)
-
-    # Skopiuj wagi z modelu oryginalnego do modelu z paddingiem
-    # (aby oba modele miały te same parametry)
-    for layer_orig, layer_padded in zip(model_original.layers, model_padded.layers):
-        if layer_orig.get_weights():
-            layer_padded.set_weights(layer_orig.get_weights())
-
-    # Predykcje
-    pred_original = model_original.predict(X_original, verbose=0)
-    pred_padded = model_padded.predict(X_padded, verbose=0)
+    # Predykcje dla obu wersji sekwencji
+    pred_original = model.predict(X_original, verbose=0)
+    pred_padded = model.predict(X_padded, verbose=0)
 
     # Sprawdź czy predykcje są niemal identyczne
+    # Padding nie powinien wpływać na wynik dzięki maskowaniu
     assert np.allclose(pred_original, pred_padded, rtol=1e-5, atol=1e-5), \
-        f"Predykcje powinny być niemal identyczne:\n" \
-        f"Oryginalna (len={original_length}): {pred_original[0, 0]}\n" \
-        f"Z paddingiem (len={padded_length}): {pred_padded[0, 0]}\n" \
-        f"Różnica: {abs(pred_original[0, 0] - pred_padded[0, 0])}"
+        f"Predykcje powinny być niemal identyczne (padding nie wpływa dzięki maskowaniu):\n" \
+        f"Oryginalna (len={original_length}): {pred_original[0, 0]:.6f}\n" \
+        f"Z paddingiem (len={padded_length}): {pred_padded[0, 0]:.6f}\n" \
+        f"Różnica: {abs(pred_original[0, 0] - pred_padded[0, 0]):.6e}"
 
 
 def test_attention_lstm_padding_invariance():
