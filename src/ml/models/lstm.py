@@ -14,8 +14,12 @@ class LSTMSequenceModel:
     def build(self) -> keras.Model:
         inputs = layers.Input(shape=self.input_shape)
 
+        # Masking layer: ignoruje kroki paddingowane zerami (0.0)
+        # Dzięki temu LSTM nie uwzględnia padding'u w obliczeniach gradientów i stanów
+        x = layers.Masking(mask_value=0.0)(inputs)
+
         # LSTM layers
-        x = layers.LSTM(self.lstm_units, return_sequences=True)(inputs)
+        x = layers.LSTM(self.lstm_units, return_sequences=True)(x)
         x = layers.Dropout(self.dropout)(x)
         x = layers.LSTM(self.lstm_units // 2)(x)
         x = layers.Dropout(self.dropout)(x)

@@ -9,10 +9,13 @@ class AttentionLayer(layers.Layer):
 
     The attention mechanism learns which actions in the sequence are most important
     for predicting the final value. Weights sum to 1.0 across the sequence.
+
+    Supports masking: padded timesteps (masked) receive zero attention weight.
     """
 
     def __init__(self, **kwargs):
         super(AttentionLayer, self).__init__(**kwargs)
+        self.supports_masking = True
 
     def build(self, input_shape):
         self.W = self.add_weight(
@@ -29,10 +32,16 @@ class AttentionLayer(layers.Layer):
         )
         super(AttentionLayer, self).build(input_shape)
 
-    def call(self, x):
+    def call(self, x, mask=None):
         # Compute attention scores: e_t = tanh(h_t * W + b)
         e = tf.nn.tanh(tf.matmul(x, self.W) + self.b)  # (batch, seq_len, 1)
         e = tf.squeeze(e, axis=-1)  # (batch, seq_len)
+
+        # Apply mask: set attention scores for padded timesteps to -inf
+        # Dzięki temu po softmax padded timesteps mają wagę 0.0
+        if mask is not None:
+            mask = tf.cast(mask, dtype=tf.bool)  # (batch, seq_len)
+            e = tf.where(mask, e, tf.ones_like(e) * -1e9)
 
         # Compute attention weights using softmax (sum to 1.0)
         attention_weights = tf.nn.softmax(e, axis=1)  # (batch, seq_len)
@@ -42,6 +51,10 @@ class AttentionLayer(layers.Layer):
         context = tf.reduce_sum(x * attention_weights_expanded, axis=1)  # (batch, hidden_dim)
 
         return context, attention_weights
+
+    def compute_mask(self, inputs, mask=None):
+        # Don't propagate mask further (context vector has no time dimension)
+        return None
 
     def get_config(self):
         return super(AttentionLayer, self).get_config()
@@ -61,10 +74,14 @@ class AttentionLSTMModel:
     def build(self) -> keras.Model:
         inputs = layers.Input(shape=self.input_shape, name='sequence_input')
 
+        # Masking layer: ignoruje kroki paddingowane zerami (0.0)
+        # Dzięki temu LSTM nie uwzględnia padding'u w obliczeniach gradientów i stanów
+        x = layers.Masking(mask_value=0.0)(inputs)
+
         # Bidirectional LSTM to capture context from both directions
         x = layers.Bidirectional(
             layers.LSTM(self.lstm_units, return_sequences=True)
-        )(inputs)
+        )(x)
         x = layers.Dropout(self.dropout)(x)
 
         # Second LSTM layer (also return sequences for attention)
