@@ -1,9 +1,13 @@
 import numpy as np
 import pytest
+import tensorflow as tf
 from tensorflow.keras import layers
 
 from src.ml.models.attention_lstm import AttentionLSTMModel
 from src.ml.models.lstm import LSTMSequenceModel
+
+tf.keras.utils.set_random_seed(123)
+np.random.seed(123)
 
 
 class TestLSTMModelMasking:
