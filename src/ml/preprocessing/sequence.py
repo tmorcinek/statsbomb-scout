@@ -33,7 +33,7 @@ class SequencePreprocessor:
     def _extract_actions(self, game: pd.Series, events_df: pd.DataFrame) -> dict[int, pd.DataFrame]:
         return {
             pid: df
-            for pid, df in extract_possessions(game, events_df).items() if len(df) >= self.sequence_length
+            for pid, df in extract_possessions(game, events_df).items() if len(df) >= 3
         }
 
     def _update_action(self, action: pd.DataFrame) -> pd.DataFrame:
@@ -121,11 +121,36 @@ class SequencePreprocessor:
             bodypart_onehot
         ], axis=1).astype(np.float32)
 
+    def _pad_sequence(self, features: np.ndarray) -> np.ndarray:
+        """
+        Pad sequence with zeros (0.0) if shorter than sequence_length.
+
+        Args:
+            features: Normalized features array of shape (n_actions, n_features)
+
+        Returns:
+            Padded array of shape (sequence_length, n_features)
+            - If len >= sequence_length: returns last sequence_length actions
+            - If len < sequence_length: pads with zeros at the end
+        """
+        n_actions, n_features = features.shape
+
+        if n_actions >= self.sequence_length:
+            # Take last sequence_length actions
+            return features[-self.sequence_length:]
+        else:
+            # Pad with zeros at the end
+            padded = np.zeros((self.sequence_length, n_features), dtype=np.float32)
+            padded[:n_actions] = features  # Copy actual data at the beginning
+            return padded
+
     def _create_sequences(self, features: np.ndarray) -> np.ndarray:
+        """Create sliding window sequences (only for long possessions)."""
         return np.lib.stride_tricks.sliding_window_view(features, (self.sequence_length, features.shape[1])).squeeze(1)
 
     def _create_simple_sequence(self, features: np.ndarray) -> np.ndarray:
-        return features[-self.sequence_length:].reshape(1, self.sequence_length, -1)
+        """Create single sequence with padding if needed."""
+        return self._pad_sequence(features).reshape(1, self.sequence_length, -1)
 
     def _create_label(self, actions_df: pd.DataFrame) -> float:
         return get_actions_value(actions_df)
@@ -141,17 +166,27 @@ class SequencePreprocessor:
         for pid, actions_df in self._extract_actions(match, events_df).items():
             features = self._update_action(actions_df)
             normalized_features = self._normalize_features(features)
+            n_actions = len(normalized_features)
 
             if mode == PreprocessingMode.TRAINING:
-                sequences = self._create_sequences(normalized_features)
-                for i, seq in enumerate(sequences):
-                    window_actions = features.iloc[i:i + self.sequence_length]
-                    labels.append(self._create_label(window_actions))
+                if n_actions >= self.sequence_length:
+                    # Long possession: create sliding windows
+                    sequences = self._create_sequences(normalized_features)
+                    for i, seq in enumerate(sequences):
+                        window_actions = features.iloc[i:i + self.sequence_length]
+                        labels.append(self._create_label(window_actions))
+                        possession_ids.append(pid)
+                    all_sequences.append(sequences)
+                else:
+                    # Short possession (3 <= n < sequence_length): pad with zeros
+                    padded_sequence = self._pad_sequence(normalized_features)
+                    all_sequences.append(padded_sequence.reshape(1, self.sequence_length, -1))
+                    labels.append(self._create_label(features))
                     possession_ids.append(pid)
-                all_sequences.append(sequences)
             else:
+                # Validation mode: always create single sequence with padding if needed
                 sequence = self._create_simple_sequence(normalized_features)
-                label = self._create_label(features.tail(self.sequence_length))
+                label = self._create_label(features if n_actions < self.sequence_length else features.tail(self.sequence_length))
                 all_sequences.append(sequence)
                 labels.append(label)
                 possession_ids.append(pid)
