@@ -309,3 +309,4 @@ class TestAttentionLSTMModelMasking:
         assert np.allclose(attention_weights[0, 10:], 0.0, atol=1e-6), "Padding sekwencji 1 powinien mieć wagę ~0"
         assert np.allclose(attention_weights[1, 5:], 0.0, atol=1e-6), "Padding sekwencji 2 powinien mieć wagę ~0"
         assert np.allclose(attention_weights[2, 12:], 0.0, atol=1e-6), "Padding sekwencji 3 powinien mieć wagę ~0"
+
