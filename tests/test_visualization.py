@@ -78,7 +78,7 @@ def test_first_possession_england(sample_game):
     assert first_action['end_y'] == 38.7175
 
     plot_possession_actions(england_first_possession)
-    plt.show()
+    # plt.show()
 
 
 def test_possession_netherlands(sample_game):
@@ -98,7 +98,7 @@ def test_possession_netherlands(sample_game):
     assert first_action['end_y'] == pytest.approx(39.1425, abs=1e-4)
 
     plot_possession_actions(england_first_possession)
-    plt.show()
+    # plt.show()
 
 
 def test_possession_with_custom_title(sample_game):
@@ -110,7 +110,7 @@ def test_possession_with_custom_title(sample_game):
 
     fig = plot_possession_actions(possession, title="Custom Possession Title - Test")
     fig.savefig('data/test/possession_2_custom_title.png', dpi=300, bbox_inches='tight')
-    plt.show()
+    # plt.show()
 
 
 def test_multiple_possessions_best(sample_game):
@@ -126,7 +126,7 @@ def test_multiple_possessions_best(sample_game):
     fig = plot_multiple_possessions(possessions_list, main_title=f"{game_summary(game)}\nPossessions with ids: {best_possessions}")
     fig.savefig('data/test/visualization_best.png', dpi=300, bbox_inches='tight')
 
-    plt.show()
+    # plt.show()
 
 
 def test_plot_multiple_shots(sample_game):
@@ -139,7 +139,7 @@ def test_plot_multiple_shots(sample_game):
     fig = plot_multiple_possessions(possessions.values(), main_title=f"{game_summary(game)}\nPossessions with Shots")
     fig.savefig('data/test/visualization_shots.png', dpi=300, bbox_inches='tight')
     # fig.canvas.manager.set_window_title("window_title")
-    plt.show()
+    # plt.show()
 
 
 def test_plot_multiple_ended_with_shots(sample_game):
@@ -151,7 +151,7 @@ def test_plot_multiple_ended_with_shots(sample_game):
 
     fig = plot_multiple_possessions(possessions.values(), main_title=f"{game_summary(game)}\nPossessions ended with Shots")
     fig.savefig('data/test/visualization_ended_with_shots.png', dpi=300, bbox_inches='tight')
-    plt.show()
+    # plt.show()
 
 
 def test_plot_multiple_goals(sample_game):
@@ -163,4 +163,4 @@ def test_plot_multiple_goals(sample_game):
 
     fig = plot_multiple_possessions(possessions.values(), main_title=f"{game_summary(game)}\nPossessions with Goals")
     fig.savefig('data/test/visualization_goals.png', dpi=300, bbox_inches='tight')
-    plt.show()
+    # plt.show()
