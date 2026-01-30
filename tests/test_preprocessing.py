@@ -70,7 +70,7 @@ def test_extract_possessions(sample_game, preprocessor):
 
     # Test _extract_possessions
     possessions_df = preprocessor._extract_actions(match, events)
-    assert len(possessions_df) == 82, "Number of possessions_df does not match!"
+    assert len(possessions_df) == 97, "Number of possessions_df does not match!"
 
     # Test _extract_features
     first_possession_df = possessions_df[2]
@@ -259,14 +259,14 @@ def test_process_match(sample_game, preprocessor):
 
     assert y[0] == 0.02385149, "Y[0] value does not match!"
     assert y[8] == 0.04893475, "Y[8] value does not match!"
-    assert y[12] == 0.25745362, "Y[12] value does not match!"
-    assert y[25] == 0.028710563, "Y[27] value does not match!"
+    assert y[12] == 0.01248344, "Y[12] value does not match!"
+    assert y[25] == 0.01870347, "Y[27] value does not match!"
 
-    assert X.shape == (82, 6, 46), "X shape does not match!"
-    assert y.shape == (82,), "y shape does not match!"
-    assert p.shape == (82,), "p shape does not match!"
+    assert X.shape == (97, 6, 46), "X shape does not match!"
+    assert y.shape == (97,), "y shape does not match!"
+    assert p.shape == (97,), "p shape does not match!"
 
-    keys = [pid for pid, df in extract_possessions(match, events).items() if len(df) >= SEQUENCE_LENGTH]
+    keys = [pid for pid, df in extract_possessions(match, events).items() if len(df) >= MINIMUM_SEQUENCE_LENGTH]
     expected_p = np.array(keys, dtype=np.int32)
     assert np.array_equal(p, expected_p), "P values (possession IDs) do not match!"
 
@@ -276,17 +276,21 @@ def test_process_match_number_of_possessions(sample_game, preprocessor):
 
     X, y, p = preprocessor.process_match(match_id, match, events)
 
-    assert X.shape == (1642, 6, 46), "X shape does not match!"
-    assert y.shape == (1642,), "y shape does not match!"
-    assert p.shape == (1642,), "p shape does not match!"
+    assert X.shape == (1657, 6, 46), "X shape does not match!"
+    assert y.shape == (1657,), "y shape does not match!"
+    assert p.shape == (1657,), "p shape does not match!"
 
 
 def test_process_matches(sample_game, preprocessor):
     matches = [sample_game]
     X, y, p, m = preprocessor.process_matches(matches, mode=PreprocessingMode.VALIDATION)
-    assert X.shape == (82, 6, 46), "X shape does not match!"
-    assert y.shape == (82,), "y shape does not match!"
-    assert p.shape == (82,), "p shape does not match!"
-    assert m.shape == (82,), "m shape does not match!"
+    assert X.shape == (97, 6, 46), "X shape does not match!"
+    assert y.shape == (97,), "y shape does not match!"
+    assert p.shape == (97,), "p shape does not match!"
+    assert m.shape == (97,), "m shape does not match!"
 
     assert np.all(m == 3942819), "Match IDs in m do not match!"
+
+
+if __name__ == '__main__':
+    pytest.main([__file__])
