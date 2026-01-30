@@ -25,15 +25,16 @@ class PreprocessingMode(Enum):
 class SequencePreprocessor:
     """Preprocesses event data into fixed-length sequences with features."""
 
-    def __init__(self, sequence_length: int, xt_model: ExpectedThreat | None = None):
+    def __init__(self, sequence_length: int, minimum_sequence_length: int, xt_model: ExpectedThreat | None = None):
         self.sequence_length = sequence_length
+        self.minimum_sequence_length = minimum_sequence_length
         self.xt_model = xt_model or get_default_xt_model()
         self.action_type_mapping = {}
 
     def _extract_actions(self, game: pd.Series, events_df: pd.DataFrame) -> dict[int, pd.DataFrame]:
         return {
             pid: df
-            for pid, df in extract_possessions(game, events_df).items() if len(df) >= 3
+            for pid, df in extract_possessions(game, events_df).items() if len(df) >= self.minimum_sequence_length
         }
 
     def _update_action(self, action: pd.DataFrame) -> pd.DataFrame:
@@ -178,7 +179,7 @@ class SequencePreprocessor:
                         possession_ids.append(pid)
                     all_sequences.append(sequences)
                 else:
-                    # Short possession (3 <= n < sequence_length): pad with zeros
+                    # Short possession (minimum_sequence_length <= n < sequence_length): pad with zeros
                     padded_sequence = self._pad_sequence(normalized_features)
                     all_sequences.append(padded_sequence.reshape(1, self.sequence_length, -1))
                     labels.append(self._create_label(features))

@@ -11,6 +11,7 @@ from src.ml.preprocessing.sequence import SequencePreprocessor, PreprocessingMod
 from src.ml.xthreat import get_default_xt_model
 
 SEQUENCE_LENGTH = 6
+MINIMUM_SEQUENCE_LENGTH = 3
 
 pd.set_option('display.width', 1000)
 pd.set_option('display.max_rows', None)
@@ -24,7 +25,11 @@ def sample_game() -> tuple[pd.Series, pd.DataFrame]:
 
 @pytest.fixture(scope="module")
 def preprocessor() -> SequencePreprocessor:
-    return SequencePreprocessor(sequence_length=SEQUENCE_LENGTH, xt_model=get_default_xt_model())
+    return SequencePreprocessor(
+        sequence_length=SEQUENCE_LENGTH,
+        minimum_sequence_length=MINIMUM_SEQUENCE_LENGTH,
+        xt_model=get_default_xt_model()
+    )
 
 
 @pytest.fixture(scope="module")
