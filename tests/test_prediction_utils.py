@@ -228,7 +228,7 @@ class TestCreateTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=None,
-            top_n=5
+            head=5
         )
 
         assert isinstance(top_df, pd.DataFrame), "Should return a DataFrame"
@@ -248,7 +248,7 @@ class TestCreateTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=sample_attention_weights,
-            top_n=3
+            head=3
         )
 
         assert len(top_df) == 3, "Should return exactly 3 rows"
@@ -267,7 +267,7 @@ class TestCreateTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=None,
-            top_n=10
+            head=10
         )
 
         # Check that values are in descending order
@@ -284,7 +284,7 @@ class TestCreateTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=None,
-            top_n=n_sequences + 100  # Request more than available
+            head=n_sequences + 100  # Request more than available
         )
 
         assert len(top_df) == n_sequences, f"Should return all {n_sequences} sequences"
@@ -297,7 +297,7 @@ class TestCreateTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=None,
-            top_n=1
+            head=1
         )
 
         assert len(top_df) == 1, "Should return exactly 1 row"
@@ -314,7 +314,7 @@ class TestCreateTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=None,
-            top_n=5
+            head=5
         )
 
         assert (top_df['game_id'] == expected_game_id).all(), \
@@ -328,7 +328,7 @@ class TestCreateTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=None,
-            top_n=5
+            head=5
         )
 
         # Check data types
@@ -349,7 +349,7 @@ class TestCreateTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=None,
-            top_n=5
+            head=5
         )
 
         # Check that possession_ids are valid integers
