@@ -91,27 +91,13 @@ def _build_possession_row(possession: DataFrame, idx: int, possession_id: int, g
     }
 
 
-def create_top_sequences(sequences: np.ndarray, predicted_values: np.ndarray, attention_weights: Optional[np.ndarray], head: Optional[int] = None) -> DataFrame:
+def create_top_sequences(sequences: np.ndarray, predicted_values: np.ndarray, attention_weights: Optional[np.ndarray],
+                         match_ids: Optional[np.ndarray] = None, head: Optional[int] = None) -> DataFrame:
     data = []
     for idx in get_top_indices(predicted_values, head):
         sequence = sequences[idx]
         possession_id = sequence.iloc[0]['possession']
-        game_id = sequence.iloc[0]['game_id']
-
-        row = _build_possession_row(sequence, idx, possession_id, game_id, predicted_values, attention_weights)
-        data.append(row)
-
-    return pd.DataFrame(data)
-
-
-def create_top_sequences_matches(sequences: np.ndarray, match_ids: np.ndarray,
-                                 predicted_values: np.ndarray, attention_weights: Optional[np.ndarray],
-                                 head: Optional[int] = None) -> DataFrame:
-    data = []
-    for idx in get_top_indices(predicted_values, head):
-        sequence = sequences[idx]
-        possession_id = sequence.iloc[0]['possession']
-        game_id = int(match_ids[idx])
+        game_id = int(match_ids[idx]) if match_ids is not None else sequence.iloc[0]['game_id']
 
         row = _build_possession_row(sequence, idx, possession_id, game_id, predicted_values, attention_weights)
         data.append(row)
@@ -120,20 +106,17 @@ def create_top_sequences_matches(sequences: np.ndarray, match_ids: np.ndarray,
 
 
 def visualize_top_sequences(sequences: np.ndarray, predicted_values: np.ndarray,
-                            attention_weights: Optional[np.ndarray], sequence_length: int,
-                            head: Optional[int] = None, main_title: Optional[str] = None):
+                            attention_weights: Optional[np.ndarray], head: Optional[int] = None, main_title: Optional[str] = None):
     top_indices = get_top_indices(predicted_values, head)
 
-    # Create titles for each sequence
     top_sequences = []
     top_sequence_titles = []
-    for i, idx in enumerate(top_indices):
-        sequence = tail_dataframes_to_sequence_length([sequences[idx]], sequence_length)[0]
+    for idx in top_indices:
+        sequence = sequences[idx]
         top_sequences.append(sequence)
         attention_weight = attention_weights[idx] if attention_weights is not None else None
         top_sequence_titles.append(_title_with_value(sequence, predicted_values[idx], attention_weight))
 
-    # Use default title if none provided
     if main_title is None:
         n_sequences = len(top_indices)
         main_title = f"Top {n_sequences} Sequences by Predicted Value"
@@ -148,15 +131,14 @@ def visualize_top_sequences_matches(sequences: np.ndarray, match_ids: np.ndarray
                                     all_matches: List[Tuple[Series, pd.DataFrame]], sequence_length: int,
                                     head: Optional[int] = None, main_title: Optional[str] = None):
     top_indices = get_top_indices(predicted_values, head)
+
     top_sequences = []
     titles = []
-
     for idx in top_indices:
         sequence = tail_dataframes_to_sequence_length([sequences[idx]], sequence_length)[0]
         top_sequences.append(sequence)
 
-        match_id = int(match_ids[idx])
-        match, _ = find_match_by_id(all_matches, match_id)
+        match, _ = find_match_by_id(all_matches, int(match_ids[idx]))
         attention_weight = attention_weights[idx] if attention_weights is not None else None
         title = game_summary(match) + "\n" + _title_with_value(sequence, predicted_values[idx], attention_weight)
         titles.append(title)

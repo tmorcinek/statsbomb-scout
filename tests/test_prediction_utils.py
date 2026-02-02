@@ -6,7 +6,6 @@ import pytest
 from src.analysis.prediction_utils import (
     get_top_indices,
     create_top_sequences,
-    create_top_sequences_matches,
     normalize_predictions,
     _build_possession_row,
     find_match_by_id,
@@ -238,7 +237,7 @@ class TestCreateTopSequences:
 
         # Check all required columns exist
         required_columns = ['possession_id', 'value', 'attention_weights', 'game_id',
-                           'team_id', 'team_name', 'period', 'time_start', 'time_end', 'outcome']
+                            'team_id', 'team_name', 'period', 'time_start', 'time_end', 'outcome']
         for col in required_columns:
             assert col in top_df.columns, f"Column {col} should exist"
 
@@ -274,7 +273,7 @@ class TestCreateTopSequences:
 
         # Check that values are in descending order
         values = top_df['value'].values
-        assert all(values[i] >= values[i+1] for i in range(len(values)-1)), \
+        assert all(values[i] >= values[i + 1] for i in range(len(values) - 1)), \
             "Values should be in descending order"
 
     def test_create_top_sequences_top_n_larger_than_available(self, processed_match, sample_predicted_values):
@@ -382,44 +381,6 @@ class TestFindMatchById:
             find_match_by_id(all_matches, 999999)
 
 
-class TestCreateTopSequencesMatches:
-    """Test suite for create_top_sequences_matches function."""
-
-    def test_create_top_sequences_matches_basic(self, processed_match, sample_predicted_values):
-        """Test basic functionality with match_ids."""
-        match, _, _, sequences = processed_match
-        match_ids = np.full(len(sequences), match.get('game_id'), dtype=np.int64)
-
-        top_df = create_top_sequences_matches(
-            sequences=sequences,
-            match_ids=match_ids,
-            predicted_values=sample_predicted_values,
-            attention_weights=None,
-            head=5
-        )
-
-        assert isinstance(top_df, pd.DataFrame)
-        assert len(top_df) == 5
-        assert 'game_id' in top_df.columns
-        assert (top_df['game_id'] == match.get('game_id')).all()
-
-    def test_create_top_sequences_matches_ordering(self, processed_match, sample_predicted_values):
-        """Test that sequences are ordered by predicted value."""
-        match, _, _, sequences = processed_match
-        match_ids = np.full(len(sequences), match.get('game_id'), dtype=np.int64)
-
-        top_df = create_top_sequences_matches(
-            sequences=sequences,
-            match_ids=match_ids,
-            predicted_values=sample_predicted_values,
-            attention_weights=None,
-            head=10
-        )
-
-        values = top_df['value'].values
-        assert all(values[i] >= values[i+1] for i in range(len(values)-1))
-
-
 class TestVisualizeTopSequences:
     """Test suite for visualize_top_sequences function."""
 
@@ -431,7 +392,6 @@ class TestVisualizeTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=None,
-            sequence_length=SEQUENCE_LENGTH,
             head=5
         )
 
@@ -447,7 +407,6 @@ class TestVisualizeTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=sample_attention_weights,
-            sequence_length=SEQUENCE_LENGTH,
             head=3
         )
 
@@ -462,7 +421,6 @@ class TestVisualizeTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=None,
-            sequence_length=SEQUENCE_LENGTH,
             head=5,
             main_title=custom_title
         )
@@ -480,7 +438,6 @@ class TestVisualizeTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=None,
-            sequence_length=SEQUENCE_LENGTH,
             head=1
         )
 
@@ -494,7 +451,6 @@ class TestVisualizeTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=None,
-            sequence_length=SEQUENCE_LENGTH,
             head=10
         )
 
@@ -508,7 +464,6 @@ class TestVisualizeTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=None,
-            sequence_length=SEQUENCE_LENGTH,
         )
 
         assert fig is not None, "Should return a figure"
