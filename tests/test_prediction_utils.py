@@ -6,10 +6,12 @@ import pytest
 from src.analysis.prediction_utils import (
     get_top_indices,
     create_top_sequences,
+    create_top_sequences_matches,
     normalize_predictions,
     _build_possession_row,
     find_match_by_id,
-    visualize_top_sequences
+    visualize_top_sequences,
+    visualize_top_sequences_matches
 )
 from src.data.data_loader import load_statsbomb_socceraction_data
 from src.ml.preprocessing.sequence import SequencePreprocessor, PreprocessingMode
@@ -380,6 +382,44 @@ class TestFindMatchById:
             find_match_by_id(all_matches, 999999)
 
 
+class TestCreateTopSequencesMatches:
+    """Test suite for create_top_sequences_matches function."""
+
+    def test_create_top_sequences_matches_basic(self, processed_match, sample_predicted_values):
+        """Test basic functionality with match_ids."""
+        match, _, _, sequences = processed_match
+        match_ids = np.full(len(sequences), match.get('game_id'), dtype=np.int64)
+
+        top_df = create_top_sequences_matches(
+            sequences=sequences,
+            match_ids=match_ids,
+            predicted_values=sample_predicted_values,
+            attention_weights=None,
+            head=5
+        )
+
+        assert isinstance(top_df, pd.DataFrame)
+        assert len(top_df) == 5
+        assert 'game_id' in top_df.columns
+        assert (top_df['game_id'] == match.get('game_id')).all()
+
+    def test_create_top_sequences_matches_ordering(self, processed_match, sample_predicted_values):
+        """Test that sequences are ordered by predicted value."""
+        match, _, _, sequences = processed_match
+        match_ids = np.full(len(sequences), match.get('game_id'), dtype=np.int64)
+
+        top_df = create_top_sequences_matches(
+            sequences=sequences,
+            match_ids=match_ids,
+            predicted_values=sample_predicted_values,
+            attention_weights=None,
+            head=10
+        )
+
+        values = top_df['value'].values
+        assert all(values[i] >= values[i+1] for i in range(len(values)-1))
+
+
 class TestVisualizeTopSequences:
     """Test suite for visualize_top_sequences function."""
 
@@ -469,6 +509,47 @@ class TestVisualizeTopSequences:
             predicted_values=sample_predicted_values,
             attention_weights=None,
             sequence_length=SEQUENCE_LENGTH,
+        )
+
+        assert fig is not None, "Should return a figure"
+
+
+class TestVisualizeTopSequencesMatches:
+    """Test suite for visualize_top_sequences_matches function."""
+
+    def test_visualize_top_sequences_matches_basic(self, processed_match, sample_predicted_values, sample_game):
+        """Test basic visualization with match_ids."""
+        match, _, _, sequences = processed_match
+        match_ids = np.full(len(sequences), match.get('game_id'), dtype=np.int64)
+        all_matches = [sample_game]
+
+        fig = visualize_top_sequences_matches(
+            sequences=sequences,
+            match_ids=match_ids,
+            predicted_values=sample_predicted_values,
+            attention_weights=None,
+            all_matches=all_matches,
+            sequence_length=SEQUENCE_LENGTH,
+            head=5
+        )
+
+        assert fig is not None, "Should return a figure"
+        assert len(fig.axes) > 0, "Figure should have axes"
+
+    def test_visualize_top_sequences_matches_with_attention(self, processed_match, sample_predicted_values, sample_attention_weights, sample_game):
+        """Test visualization with attention weights."""
+        match, _, _, sequences = processed_match
+        match_ids = np.full(len(sequences), match.get('game_id'), dtype=np.int64)
+        all_matches = [sample_game]
+
+        fig = visualize_top_sequences_matches(
+            sequences=sequences,
+            match_ids=match_ids,
+            predicted_values=sample_predicted_values,
+            attention_weights=sample_attention_weights,
+            all_matches=all_matches,
+            sequence_length=SEQUENCE_LENGTH,
+            head=3
         )
 
         assert fig is not None, "Should return a figure"
