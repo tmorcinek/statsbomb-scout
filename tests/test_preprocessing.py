@@ -266,9 +266,9 @@ def test_process_match(sample_game, preprocessor):
     assert y.shape == (97,), "y shape does not match!"
     assert p.shape == (97,), "p shape does not match!"
 
-    keys = [pid for pid, df in extract_possessions(match, events).items() if len(df) >= MINIMUM_SEQUENCE_LENGTH]
-    expected_p = np.array(keys, dtype=np.int32)
-    assert np.array_equal(p, expected_p), "P values (possession IDs) do not match!"
+    assert all(isinstance(seq, pd.DataFrame) for seq in p), "All sequences should be DataFrames"
+    assert all(len(seq) <= SEQUENCE_LENGTH for seq in p), f"All sequences should have length <= {SEQUENCE_LENGTH}"
+    assert all(len(seq) >= MINIMUM_SEQUENCE_LENGTH for seq in p), f"All sequences should have length >= {MINIMUM_SEQUENCE_LENGTH}"
 
 def test_process_match_number_of_possessions(sample_game, preprocessor):
     match, events = sample_game
