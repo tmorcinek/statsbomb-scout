@@ -49,8 +49,17 @@ def load_model(model_type: str, model_dir: str = None) -> keras.Model:
     if not model_path.exists():
         raise FileNotFoundError(f"Model not found at: {model_path}")
 
+    custom_objects = {}
+
     if model_type == 'attention_lstm':
         from src.ml.models.attention_lstm import AttentionLayer
-        return keras.models.load_model(model_path, custom_objects={'AttentionLayer': AttentionLayer})
+        custom_objects['AttentionLayer'] = AttentionLayer
+    elif model_type == 'transformer':
+        from src.ml.models.transformer import AttentionWeightsLayer, AddPositionalEncoding
+        custom_objects['AttentionWeightsLayer'] = AttentionWeightsLayer
+        custom_objects['AddPositionalEncoding'] = AddPositionalEncoding
+
+    if custom_objects:
+        return keras.models.load_model(model_path, custom_objects=custom_objects)
 
     return keras.models.load_model(model_path)
