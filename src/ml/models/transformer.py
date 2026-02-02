@@ -77,8 +77,16 @@ class AttentionWeightsLayer(layers.Layer):
         super(AttentionWeightsLayer, self).build(input_shape)
 
     def call(self, inputs, mask=None):
-        # Apply multi-head attention
-        attention_output = self.mha(inputs, inputs)
+        # Convert boolean mask to attention_mask format for MultiHeadAttention
+        # MultiHeadAttention expects attention_mask of shape (batch, 1, seq_len) for self-attention
+        attn_mask = None
+        if mask is not None:
+            # mask shape: (batch, seq_len) -> expand to (batch, 1, seq_len)
+            # Cast to int32 as expected by Keras MultiHeadAttention
+            attn_mask = tf.cast(mask[:, tf.newaxis, :], tf.int32)
+
+        # Apply multi-head attention with explicit attention_mask
+        attention_output = self.mha(inputs, inputs, attention_mask=attn_mask)
 
         # Compute attention weights (simplified scoring like in AttentionLSTM)
         # This gives us interpretable weights for visualization
@@ -87,8 +95,8 @@ class AttentionWeightsLayer(layers.Layer):
 
         # Apply mask: set attention scores for padded timesteps to -inf
         if mask is not None:
-            mask = tf.cast(mask, dtype=tf.bool)
-            e = tf.where(mask, e, tf.ones_like(e) * -1e9)
+            mask_bool = tf.cast(mask, dtype=tf.bool)
+            e = tf.where(mask_bool, e, tf.ones_like(e) * -1e9)
 
         # Compute attention weights using softmax (sum to 1.0)
         attention_weights = tf.nn.softmax(e, axis=1)  # (batch, seq_len)
@@ -96,7 +104,7 @@ class AttentionWeightsLayer(layers.Layer):
         return attention_output, attention_weights
 
     def compute_mask(self, inputs, mask=None):
-        # Don't propagate mask further (attention output doesn't need it)
+        # Propagate mask for subsequent layers
         return mask
 
     def get_config(self):
@@ -120,6 +128,10 @@ class TransformerSequenceModel:
     """
 
     def __init__(self, input_shape: tuple, num_heads: int = 4, d_model: int = 128, ff_dim: int = 512, num_blocks: int = 2, dropout: float = 0.1):
+        # Validate that d_model is divisible by num_heads
+        if d_model % num_heads != 0:
+            raise ValueError(f"d_model ({d_model}) must be divisible by num_heads ({num_heads})")
+
         self.input_shape = input_shape
         self.num_heads = num_heads
         self.d_model = d_model
@@ -136,18 +148,22 @@ class TransformerSequenceModel:
             inputs: Input tensor
             is_last_block: If True, returns attention weights from this block
         """
+        # Use key_dim = d_model // num_heads (per-head dimension)
+        key_dim = self.d_model // self.num_heads
+
         if is_last_block:
             # Last block: capture attention weights
             attention_layer = AttentionWeightsLayer(
                 num_heads=self.num_heads,
-                key_dim=self.d_model,
+                key_dim=key_dim,
                 name='attention_weights_layer'
             )
             attention_output, attention_weights = attention_layer(inputs)
         else:
             # Regular block: just attention output
             attention_output = layers.MultiHeadAttention(
-                num_heads=self.num_heads, key_dim=self.d_model
+                num_heads=self.num_heads,
+                key_dim=key_dim
             )(inputs, inputs)
             attention_weights = None
 
@@ -219,3 +235,4 @@ class TransformerSequenceModel:
             },
             metrics={'value': ['mae']}
         )
+
