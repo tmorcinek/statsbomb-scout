@@ -162,7 +162,7 @@ class SequencePreprocessor:
 
         all_sequences = []
         labels = []
-        possession_ids = []
+        sequence_windows = []
 
         for pid, actions_df in self._extract_actions(match, events_df).items():
             features = self._update_action(actions_df)
@@ -176,25 +176,26 @@ class SequencePreprocessor:
                     for i, seq in enumerate(sequences):
                         window_actions = features.iloc[i:i + self.sequence_length]
                         labels.append(self._create_label(window_actions))
-                        possession_ids.append(pid)
+                        sequence_windows.append(window_actions)
                     all_sequences.append(sequences)
                 else:
                     # Short possession (minimum_sequence_length <= n < sequence_length): pad with zeros
                     padded_sequence = self._pad_sequence(normalized_features)
                     all_sequences.append(padded_sequence.reshape(1, self.sequence_length, -1))
                     labels.append(self._create_label(features))
-                    possession_ids.append(pid)
+                    sequence_windows.append(features)
             else:
                 # Validation mode: always create single sequence with padding if needed
                 sequence = self._create_simple_sequence(normalized_features)
-                label = self._create_label(features if n_actions < self.sequence_length else features.tail(self.sequence_length))
+                window_actions = features if n_actions < self.sequence_length else features.tail(self.sequence_length)
+                label = self._create_label(window_actions)
                 all_sequences.append(sequence)
                 labels.append(label)
-                possession_ids.append(pid)
+                sequence_windows.append(window_actions)
 
         X = np.concatenate(all_sequences)
         y = np.array(labels)
-        p = np.array(possession_ids)
+        p = np.array(sequence_windows, dtype=object)
         print(f" → Generated {len(X)} sequences, {len(y)} labels for match {match_id}")
 
         return X, y, p
@@ -202,7 +203,7 @@ class SequencePreprocessor:
     def process_matches(self, matches: Iterable[Tuple[pd.Series, pd.DataFrame]], mode: PreprocessingMode = PreprocessingMode.TRAINING) -> Tuple[
         np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         results = [
-            (X, y, p, np.full_like(p, m["game_id"]))
+            (X, y, p, np.full((len(p),), m["game_id"], dtype=np.int64))
             for m, e in matches
             for X, y, p in [self.process_match(m["game_id"], m, e, mode=mode)]
         ]

@@ -17,9 +17,9 @@ def find_match_by_id(all_matches: List[Tuple[pd.Series, pd.DataFrame]], match_id
     raise ValueError(f"Match with game_id {match_id} not found")
 
 
-def get_top_indices(predicted_values: np.ndarray, n: Optional[int] = None) -> np.ndarray:
+def get_top_indices(predicted_values: np.ndarray, head: Optional[int] = None) -> np.ndarray:
     sorted_indices = np.argsort(predicted_values)[::-1]
-    return sorted_indices[:n] if n is not None else sorted_indices
+    return sorted_indices[:head] if head is not None else sorted_indices
 
 
 def create_possessions_list(all_matches: List[Tuple[pd.Series, pd.DataFrame]]) -> List[Tuple[Series, dict[int, DataFrame]]]:
@@ -109,6 +109,19 @@ def create_top_possessions_df(selected_match: Series, selected_events: DataFrame
     return pd.DataFrame(data)
 
 
+def create_top_sequences(sequences: np.ndarray, predicted_values: np.ndarray, attention_weights: Optional[np.ndarray], head: Optional[int] = None) -> DataFrame:
+    data = []
+    for idx in get_top_indices(predicted_values, head):
+        sequence = sequences[idx]
+        possession_id = sequence.iloc[0]['possession']
+        game_id = sequence.iloc[0]['game_id']
+
+        row = _build_possession_row(sequence, idx, possession_id, game_id, predicted_values, attention_weights)
+        data.append(row)
+
+    return pd.DataFrame(data)
+
+
 def create_top_possessions_df_matches(game_possessions_list: List[Tuple[Series, dict]], p_match: np.ndarray,
                                      match_ids: np.ndarray, predicted_values: np.ndarray,
                                      attention_weights: Optional[np.ndarray], top_n: int) -> DataFrame:
@@ -127,6 +140,31 @@ def create_top_possessions_df_matches(game_possessions_list: List[Tuple[Series, 
 
     return pd.DataFrame(data)
 
+
+
+def visualize_top_sequences(sequences: np.ndarray, predicted_values: np.ndarray,
+                           attention_weights: Optional[np.ndarray], top_n: int,
+                           sequence_length: int, main_title: Optional[str] = None):
+    top_indices = get_top_indices(predicted_values, top_n)
+
+    # Get top sequences directly from the array
+    top_sequences = [sequences[idx] for idx in top_indices]
+    top_sequences = tail_dataframes_to_sequence_length(top_sequences, sequence_length)
+
+    # Create titles for each sequence
+    top_sequence_titles = []
+    for i, idx in enumerate(top_indices):
+        sequence = top_sequences[i]
+        attention_weight = attention_weights[idx] if attention_weights is not None else None
+        top_sequence_titles.append(_title_with_value(sequence, predicted_values[idx], attention_weight))
+
+    # Use default title if none provided
+    if main_title is None:
+        main_title = f"Top {top_n} Sequences by Predicted Value"
+
+    fig = plot_multiple_possessions(top_sequences, titles=top_sequence_titles, main_title=main_title)
+    plt.tight_layout()
+    return fig
 
 
 def visualize_top_possessions(selected_match: Series, selected_events: DataFrame, p_match: np.ndarray,
