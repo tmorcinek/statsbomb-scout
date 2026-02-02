@@ -106,8 +106,9 @@ def create_top_sequences(sequences: np.ndarray, predicted_values: np.ndarray, at
 
 
 def visualize_top_sequences(sequences: np.ndarray, predicted_values: np.ndarray,
-                            attention_weights: Optional[np.ndarray], head: Optional[int] = None, main_title: Optional[str] = None):
-    top_indices = get_top_indices(predicted_values, head)
+                            attention_weights: Optional[np.ndarray], head: Optional[int] = None, main_title: Optional[str] = None,
+                            indices: Optional[np.ndarray] = None):
+    top_indices = indices if indices is not None else get_top_indices(predicted_values, head)
 
     top_sequences = []
     top_sequence_titles = []
@@ -116,6 +117,7 @@ def visualize_top_sequences(sequences: np.ndarray, predicted_values: np.ndarray,
         top_sequences.append(sequence)
         attention_weight = attention_weights[idx] if attention_weights is not None else None
         top_sequence_titles.append(_title_with_value(sequence, predicted_values[idx], attention_weight))
+        print(f"Processed sequence index: {idx} with predicted value: {predicted_values[idx]:.3f}")
 
     if main_title is None:
         n_sequences = len(top_indices)
