@@ -391,8 +391,8 @@ class TestVisualizeTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=None,
-            top_n=5,
-            sequence_length=SEQUENCE_LENGTH
+            sequence_length=SEQUENCE_LENGTH,
+            head=5
         )
 
         assert fig is not None, "Should return a figure"
@@ -407,8 +407,8 @@ class TestVisualizeTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=sample_attention_weights,
-            top_n=3,
-            sequence_length=SEQUENCE_LENGTH
+            sequence_length=SEQUENCE_LENGTH,
+            head=3
         )
 
         assert fig is not None, "Should return a figure"
@@ -422,8 +422,8 @@ class TestVisualizeTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=None,
-            top_n=5,
             sequence_length=SEQUENCE_LENGTH,
+            head=5,
             main_title=custom_title
         )
 
@@ -440,8 +440,8 @@ class TestVisualizeTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=None,
-            top_n=1,
-            sequence_length=SEQUENCE_LENGTH
+            sequence_length=SEQUENCE_LENGTH,
+            head=1
         )
 
         assert fig is not None, "Should return a figure"
@@ -454,8 +454,21 @@ class TestVisualizeTopSequences:
             sequences=sequences,
             predicted_values=sample_predicted_values,
             attention_weights=None,
-            top_n=10,
-            sequence_length=SEQUENCE_LENGTH
+            sequence_length=SEQUENCE_LENGTH,
+            head=10
+        )
+
+        assert fig is not None, "Should return a figure"
+
+    def test_visualize_top_sequences_all(self, processed_match, sample_predicted_values):
+        """Test visualizing all sequences when head=None."""
+        _, _, _, sequences = processed_match
+
+        fig = visualize_top_sequences(
+            sequences=sequences,
+            predicted_values=sample_predicted_values,
+            attention_weights=None,
+            sequence_length=SEQUENCE_LENGTH,
         )
 
         assert fig is not None, "Should return a figure"

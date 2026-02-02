@@ -124,9 +124,9 @@ def create_top_possessions_df_matches(game_possessions_list: List[Tuple[Series, 
 
 
 def visualize_top_sequences(sequences: np.ndarray, predicted_values: np.ndarray,
-                            attention_weights: Optional[np.ndarray], top_n: int,
-                            sequence_length: int, main_title: Optional[str] = None):
-    top_indices = get_top_indices(predicted_values, top_n)
+                            attention_weights: Optional[np.ndarray], sequence_length: int,
+                            head: Optional[int] = None, main_title: Optional[str] = None):
+    top_indices = get_top_indices(predicted_values, head)
 
     # Create titles for each sequence
     top_sequences = []
@@ -139,7 +139,8 @@ def visualize_top_sequences(sequences: np.ndarray, predicted_values: np.ndarray,
 
     # Use default title if none provided
     if main_title is None:
-        main_title = f"Top {top_n} Sequences by Predicted Value"
+        n_sequences = len(top_indices)
+        main_title = f"Top {n_sequences} Sequences by Predicted Value"
 
     fig = plot_multiple_possessions(top_sequences, titles=top_sequence_titles, main_title=main_title)
     plt.tight_layout()
