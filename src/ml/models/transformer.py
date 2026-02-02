@@ -48,28 +48,27 @@ class AttentionWeightsLayer(layers.Layer):
     Supports masking for padded timesteps - masked positions get zero attention weight.
     """
 
-    def __init__(self, num_heads: int, key_dim: int, **kwargs):
+    def __init__(self, num_heads: int, key_dim: int, use_true_attention: bool = False, **kwargs):
         super(AttentionWeightsLayer, self).__init__(**kwargs)
         self.num_heads = num_heads
         self.key_dim = key_dim
+        self.use_true_attention = use_true_attention
         self.supports_masking = True
 
     def build(self, input_shape):
-        # Dense layer to compute attention scores
-        self.W = self.add_weight(
-            name='attention_weight',
-            shape=(input_shape[-1], 1),
-            initializer='glorot_uniform',
-            trainable=True
-        )
-        self.b = self.add_weight(
-            name='attention_bias',
-            shape=(input_shape[1], 1),
-            initializer='zeros',
-            trainable=True
-        )
-
-        # MultiHeadAttention for computing the actual attention output
+        if not self.use_true_attention:
+            self.W = self.add_weight(
+                name='attention_weight',
+                shape=(input_shape[-1], 1),
+                initializer='glorot_uniform',
+                trainable=True
+            )
+            self.b = self.add_weight(
+                name='attention_bias',
+                shape=(input_shape[1], 1),
+                initializer='zeros',
+                trainable=True
+            )
         self.mha = layers.MultiHeadAttention(
             num_heads=self.num_heads,
             key_dim=self.key_dim
@@ -77,41 +76,44 @@ class AttentionWeightsLayer(layers.Layer):
         super(AttentionWeightsLayer, self).build(input_shape)
 
     def call(self, inputs, mask=None):
-        # Convert boolean mask to attention_mask format for MultiHeadAttention
-        # MultiHeadAttention expects attention_mask of shape (batch, 1, seq_len) for self-attention
         attn_mask = None
         if mask is not None:
-            # mask shape: (batch, seq_len) -> expand to (batch, 1, seq_len)
-            # Cast to int32 as expected by Keras MultiHeadAttention
             attn_mask = tf.cast(mask[:, tf.newaxis, :], tf.int32)
 
-        # Apply multi-head attention with explicit attention_mask
-        attention_output = self.mha(inputs, inputs, attention_mask=attn_mask)
-
-        # Compute attention weights (simplified scoring like in AttentionLSTM)
-        # This gives us interpretable weights for visualization
-        e = tf.nn.tanh(tf.matmul(inputs, self.W) + self.b)  # (batch, seq_len, 1)
-        e = tf.squeeze(e, axis=-1)  # (batch, seq_len)
-
-        # Apply mask: set attention scores for padded timesteps to -inf
-        if mask is not None:
-            mask_bool = tf.cast(mask, dtype=tf.bool)
-            e = tf.where(mask_bool, e, tf.ones_like(e) * -1e9)
-
-        # Compute attention weights using softmax (sum to 1.0)
-        attention_weights = tf.nn.softmax(e, axis=1)  # (batch, seq_len)
+        if self.use_true_attention:
+            attention_output, attention_scores = self.mha(
+                inputs, inputs,
+                attention_mask=attn_mask,
+                return_attention_scores=True
+            )
+            attention_scores_avg = tf.reduce_mean(attention_scores, axis=1)
+            attention_weights = tf.reduce_mean(attention_scores_avg, axis=1)
+            if mask is not None:
+                mask_float = tf.cast(mask, dtype=attention_weights.dtype)
+                attention_weights = attention_weights * mask_float
+                sum_weights = tf.reduce_sum(attention_weights, axis=1, keepdims=True)
+                sum_weights = tf.maximum(sum_weights, 1e-9)
+                attention_weights = attention_weights / sum_weights
+        else:
+            attention_output = self.mha(inputs, inputs, attention_mask=attn_mask)
+            e = tf.nn.tanh(tf.matmul(inputs, self.W) + self.b)
+            e = tf.squeeze(e, axis=-1)
+            if mask is not None:
+                mask_bool = tf.cast(mask, dtype=tf.bool)
+                e = tf.where(mask_bool, e, tf.ones_like(e) * -1e9)
+            attention_weights = tf.nn.softmax(e, axis=1)
 
         return attention_output, attention_weights
 
     def compute_mask(self, inputs, mask=None):
-        # Propagate mask for subsequent layers
         return mask
 
     def get_config(self):
         config = super(AttentionWeightsLayer, self).get_config()
         config.update({
             'num_heads': self.num_heads,
-            'key_dim': self.key_dim
+            'key_dim': self.key_dim,
+            'use_true_attention': self.use_true_attention
         })
         return config
 
@@ -127,7 +129,7 @@ class TransformerSequenceModel:
     - Returns both value prediction and attention weights
     """
 
-    def __init__(self, input_shape: tuple, num_heads: int = 4, d_model: int = 128, ff_dim: int = 512, num_blocks: int = 2, dropout: float = 0.1):
+    def __init__(self, input_shape: tuple, num_heads: int = 4, d_model: int = 128, ff_dim: int = 512, num_blocks: int = 2, dropout: float = 0.1, true_attention: bool = False):
         # Validate that d_model is divisible by num_heads
         if d_model % num_heads != 0:
             raise ValueError(f"d_model ({d_model}) must be divisible by num_heads ({num_heads})")
@@ -138,6 +140,7 @@ class TransformerSequenceModel:
         self.ff_dim = ff_dim
         self.num_blocks = num_blocks
         self.dropout = dropout
+        self.true_attention = true_attention
         self.model = None
 
     def transformer_encoder(self, inputs, is_last_block=False):
@@ -156,6 +159,7 @@ class TransformerSequenceModel:
             attention_layer = AttentionWeightsLayer(
                 num_heads=self.num_heads,
                 key_dim=key_dim,
+                use_true_attention=self.true_attention,
                 name='attention_weights_layer'
             )
             attention_output, attention_weights = attention_layer(inputs)
@@ -235,4 +239,3 @@ class TransformerSequenceModel:
             },
             metrics={'value': ['mae']}
         )
-

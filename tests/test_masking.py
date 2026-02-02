@@ -427,3 +427,66 @@ class TestTransformerModelMasking:
         assert np.all(valid_weights_seq2 > 0), \
             f"Wszystkie wagi dla prawdziwych kroków sekwencji 2 powinny być > 0"
 
+class TestTransformerTrueAttentionModelMasking:
+
+    @pytest.fixture
+    def test_data(self):
+        sequence_length = 10
+        num_features = 5
+        batch_size = 2
+
+        X = np.random.randn(batch_size, sequence_length, num_features).astype(np.float32)
+        X[0, 7:, :] = 0.0
+        X[1, 4:, :] = 0.0
+
+        return X, sequence_length, num_features
+
+    @pytest.fixture
+    def transformer_true_attention_model(self, test_data):
+        from src.ml.models.transformer import TransformerSequenceModel
+
+        X, sequence_length, num_features = test_data
+
+        model_builder = TransformerSequenceModel(
+            input_shape=(sequence_length, num_features),
+            num_heads=2,
+            d_model=32,
+            ff_dim=64,
+            num_blocks=2,
+            dropout=0.2,
+            true_attention=True
+        )
+        model = model_builder.build()
+        model_builder.compile(learning_rate=0.001)
+        return model
+
+    def test_true_attention_outputs_dict(self, test_data, transformer_true_attention_model):
+        X, *_ = test_data
+        outputs = transformer_true_attention_model.predict(X, verbose=0)
+        assert isinstance(outputs, dict)
+        assert 'value' in outputs
+        assert 'attention_weights' in outputs
+
+    def test_true_attention_weights_shape(self, test_data, transformer_true_attention_model):
+        X, sequence_length, _ = test_data
+        attention_weights = transformer_true_attention_model.predict(X, verbose=0)['attention_weights']
+        assert attention_weights.shape == (X.shape[0], sequence_length)
+
+    def test_true_attention_weights_sum_to_one(self, test_data, transformer_true_attention_model):
+        X, *_ = test_data
+        attention_weights = transformer_true_attention_model.predict(X, verbose=0)['attention_weights']
+        sums = np.sum(attention_weights, axis=1)
+        assert np.allclose(sums, 1.0, atol=1e-5)
+
+    def test_true_attention_weights_zero_for_padding(self, test_data, transformer_true_attention_model):
+        X, *_ = test_data
+        attention_weights = transformer_true_attention_model.predict(X, verbose=0)['attention_weights']
+        assert np.allclose(attention_weights[0, 7:], 0.0, atol=1e-6)
+        assert np.allclose(attention_weights[1, 4:], 0.0, atol=1e-6)
+
+    def test_true_attention_weights_positive_for_valid_steps(self, test_data, transformer_true_attention_model):
+        X, *_ = test_data
+        attention_weights = transformer_true_attention_model.predict(X, verbose=0)['attention_weights']
+        assert np.all(attention_weights[0, :7] > 0)
+        assert np.all(attention_weights[1, :4] > 0)
+
