@@ -316,8 +316,6 @@ class TestTransformerModelMasking:
     @pytest.fixture
     def test_data(self):
         """Fixture z danymi testowymi: sekwencje z paddingiem."""
-        from src.ml.models.transformer import TransformerSequenceModel
-
         sequence_length = 10
         num_features = 5
         batch_size = 2
@@ -330,69 +328,49 @@ class TestTransformerModelMasking:
 
         return X, sequence_length, num_features
 
-    def test_transformer_model_has_masking_layer(self, test_data):
+    @pytest.fixture
+    def transformer_model(self, test_data):
+        """Fixture z gotowym modelem Transformer."""
+        from src.ml.models.transformer import TransformerSequenceModel
+
+        X, sequence_length, num_features = test_data
+
+        model_builder = TransformerSequenceModel(
+            input_shape=(sequence_length, num_features),
+            num_heads=2,
+            d_model=32,
+            ff_dim=64,
+            num_blocks=2,
+            dropout=0.2
+        )
+        model = model_builder.build()
+        model_builder.compile(learning_rate=0.001)
+        return model
+
+    def test_transformer_model_has_masking_layer(self, transformer_model):
         """Test czy model Transformer zawiera warstwę Masking."""
-        from src.ml.models.transformer import TransformerSequenceModel
+        # Sprawdź czy model ma warstwę Masking (szukaj w całym modelu, nie zakładaj pozycji)
+        masking_layer = next((layer for layer in transformer_model.layers
+                              if isinstance(layer, layers.Masking)), None)
+        assert masking_layer is not None, "Model powinien zawierać warstwę Masking"
+        assert masking_layer.mask_value == 0.0, f"mask_value powinno być 0.0, a jest {masking_layer.mask_value}"
 
-        X, sequence_length, num_features = test_data
-
-        transformer_model = TransformerSequenceModel(
-            input_shape=(sequence_length, num_features),
-            num_heads=2,
-            d_model=32,
-            ff_dim=64,
-            num_blocks=2,
-            dropout=0.2
-        )
-        model = transformer_model.build()
-
-        # Sprawdź czy druga warstwa to Masking (pierwsza to Input)
-        assert len(model.layers) >= 2, "Model powinien mieć co najmniej 2 warstwy"
-        masking_layer = model.layers[1]
-        assert isinstance(masking_layer, layers.Masking), f"Druga warstwa powinna być Masking, a jest {type(masking_layer)}"
-
-    def test_transformer_model_has_attention_weights_output(self, test_data):
+    def test_transformer_model_has_attention_weights_output(self, test_data, transformer_model):
         """Test czy model Transformer zwraca attention weights."""
-        from src.ml.models.transformer import TransformerSequenceModel
-
         X, sequence_length, num_features = test_data
 
-        transformer_model = TransformerSequenceModel(
-            input_shape=(sequence_length, num_features),
-            num_heads=2,
-            d_model=32,
-            ff_dim=64,
-            num_blocks=2,
-            dropout=0.2
-        )
-        model = transformer_model.build()
-        transformer_model.compile(learning_rate=0.001)
-
-        outputs = model.predict(X, verbose=0)
+        outputs = transformer_model.predict(X, verbose=0)
 
         # Sprawdź czy outputs jest dict z 'value' i 'attention_weights'
         assert isinstance(outputs, dict), "Outputs powinny być dict"
         assert 'value' in outputs, "Outputs powinny zawierać 'value'"
         assert 'attention_weights' in outputs, "Outputs powinny zawierać 'attention_weights'"
 
-    def test_transformer_attention_weights_shape(self, test_data):
+    def test_transformer_attention_weights_shape(self, test_data, transformer_model):
         """Test czy attention weights mają poprawny kształt."""
-        from src.ml.models.transformer import TransformerSequenceModel
-
         X, sequence_length, num_features = test_data
 
-        transformer_model = TransformerSequenceModel(
-            input_shape=(sequence_length, num_features),
-            num_heads=2,
-            d_model=32,
-            ff_dim=64,
-            num_blocks=2,
-            dropout=0.2
-        )
-        model = transformer_model.build()
-        transformer_model.compile(learning_rate=0.001)
-
-        outputs = model.predict(X, verbose=0)
+        outputs = transformer_model.predict(X, verbose=0)
         attention_weights = outputs['attention_weights']
 
         # Sprawdź kształt attention weights
@@ -400,24 +378,11 @@ class TestTransformerModelMasking:
         assert attention_weights.shape == expected_shape, \
             f"Attention weights powinny mieć kształt {expected_shape}, a mają {attention_weights.shape}"
 
-    def test_transformer_attention_weights_sum_to_one(self, test_data):
+    def test_transformer_attention_weights_sum_to_one(self, test_data, transformer_model):
         """Test czy wagi uwagi sumują się do 1.0."""
-        from src.ml.models.transformer import TransformerSequenceModel
-
         X, sequence_length, num_features = test_data
 
-        transformer_model = TransformerSequenceModel(
-            input_shape=(sequence_length, num_features),
-            num_heads=2,
-            d_model=32,
-            ff_dim=64,
-            num_blocks=2,
-            dropout=0.2
-        )
-        model = transformer_model.build()
-        transformer_model.compile(learning_rate=0.001)
-
-        outputs = model.predict(X, verbose=0)
+        outputs = transformer_model.predict(X, verbose=0)
         attention_weights = outputs['attention_weights']
 
         # Sprawdź czy wagi sumują się do ~1.0 dla każdej sekwencji
@@ -426,24 +391,11 @@ class TestTransformerModelMasking:
             assert np.isclose(weight_sum, 1.0, atol=1e-5), \
                 f"Wagi uwagi dla sekwencji {i} powinny sumować się do 1.0, a sumują się do {weight_sum}"
 
-    def test_transformer_attention_weights_zero_for_padding(self, test_data):
+    def test_transformer_attention_weights_zero_for_padding(self, test_data, transformer_model):
         """Test czy wagi uwagi dla paddingowanych kroków są zerowe."""
-        from src.ml.models.transformer import TransformerSequenceModel
-
         X, sequence_length, num_features = test_data
 
-        transformer_model = TransformerSequenceModel(
-            input_shape=(sequence_length, num_features),
-            num_heads=2,
-            d_model=32,
-            ff_dim=64,
-            num_blocks=2,
-            dropout=0.2
-        )
-        model = transformer_model.build()
-        transformer_model.compile(learning_rate=0.001)
-
-        outputs = model.predict(X, verbose=0)
+        outputs = transformer_model.predict(X, verbose=0)
         attention_weights = outputs['attention_weights']
 
         # Sekwencja 1: padding od indeksu 7
@@ -458,24 +410,11 @@ class TestTransformerModelMasking:
         assert np.allclose(padding_weights_seq2, 0.0, atol=1e-6), \
             f"Wagi dla paddingu sekwencji 2 powinny być ~0, a są {padding_weights_seq2}"
 
-    def test_transformer_attention_weights_non_zero_for_valid_steps(self, test_data):
+    def test_transformer_attention_weights_non_zero_for_valid_steps(self, test_data, transformer_model):
         """Test czy wagi uwagi dla prawdziwych kroków są większe od zera."""
-        from src.ml.models.transformer import TransformerSequenceModel
-
         X, sequence_length, num_features = test_data
 
-        transformer_model = TransformerSequenceModel(
-            input_shape=(sequence_length, num_features),
-            num_heads=2,
-            d_model=32,
-            ff_dim=64,
-            num_blocks=2,
-            dropout=0.2
-        )
-        model = transformer_model.build()
-        transformer_model.compile(learning_rate=0.001)
-
-        outputs = model.predict(X, verbose=0)
+        outputs = transformer_model.predict(X, verbose=0)
         attention_weights = outputs['attention_weights']
 
         # Sekwencja 1: prawdziwe kroki 0-6
