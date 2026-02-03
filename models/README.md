@@ -6,21 +6,31 @@ Ten folder zawiera wytrenowane modele oraz powiązane artefakty.
 
 ```
 models/
-├── best_model.h5           # Najlepszy model z treningu (auto-zapisywany)
-├── xt_models/              # Modele Expected Threat (xT)
-│   ├── 4_16.pkl           # xT model dla konkretnej ligi/sezonu
-│   └── default_xt_model.json
-└── *.json                  # Metryki treningu
+├── lstm/                   # LSTM models
+│   ├── best_model.keras
+│   ├── metrics.json
+│   └── *.png              # Visualizations
+├── attention_lstm/         # Attention LSTM models  
+│   ├── best_model.keras
+│   ├── metrics.json
+│   └── *.png
+├── transformer/            # Transformer models
+│   ├── best_model.keras
+│   ├── metrics.json
+│   └── *.png
+└── xt_models/              # Expected Threat (xT) models
+    └── default_xt_model.json
 ```
 
 ## 🔄 Automatyczne Zapisywanie
 
-Podczas treningu (`ModelTrainer`), następujące pliki są automatycznie tworzone:
+Podczas treningu przez `train_models.py`, każdy model jest zapisywany w osobnym folderze:
 
-### **best_model.h5**
-- Zapisywany przez `ModelCheckpoint` callback
-- Zawiera wagi modelu z **najniższą** `val_loss` podczas całego treningu
-- To jest model, którego powinieneś używać do predykcji!
+### **{model_type}_{name}_{timestamp}/**
+- `best_model.keras` - Model z najniższą `val_loss` podczas treningu
+- `metrics.json` - Metryki treningu i walidacji
+- `*.png` - Wizualizacje najlepszych sekwencji
+- `config.json` - Konfiguracja modelu
 
 ## 🚫 .gitignore
 
@@ -31,32 +41,37 @@ To znaczy, że modele **nie będą** commitowane do repozytorium, ponieważ są 
 
 Folder `xt_models/` zawiera:
 - Wytrenowane siatki xT dla różnych lig/sezonów
-- Format: `{season_id}_{competition_id}.pkl`
+- Format: `default_xt_model.json`
 - Automatycznie cachowane po pierwszym wytrenowaniu
 - Można je bezpiecznie commitować do repo (małe pliki)
 
 ## 🔧 Użycie
 
-### Załaduj najlepszy model:
-```python
-import tensorflow as tf
+### Trenowanie modeli:
+```bash
+python train_models.py
+```
 
-model = tf.keras.models.load_model('models/best_model.h5')
+### Załaduj wytrenowany model:
+```python
+from src.ml.models.model_factory import load_model
+
+model = load_model('models/attention_lstm/best_model.keras')
 predictions = model.predict(X_test)
 ```
 
 ### Załaduj xT model:
 ```python
-from src.xthreat import get_xt_model_for_competition
+from src.ml.xthreat import get_default_xt_model
 
-xt_model = get_xt_model_for_competition(season_id=4, competition_id=16)
+xt_model = get_default_xt_model()
 ```
 
 ## 🧹 Czyszczenie
 
 Aby usunąć wszystkie wytrenowane modele:
 ```bash
-rm models/*.h5 models/*.keras models/*.json
+rm -rf models/lstm models/attention_lstm models/transformer
 ```
 
 xT modele pozostaną nienaruszone w `xt_models/`.
