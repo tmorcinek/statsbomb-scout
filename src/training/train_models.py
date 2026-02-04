@@ -216,18 +216,18 @@ def create_default_configs() -> List[ModelConfig]:
     """Create default model configurations for comparison."""
     configs = [
         # LSTM models
-        # ModelConfig(
-        #     name="lstm_baseline",
-        #     model_type="lstm",
-        #     model_params={'lstm_units': 64, 'dropout': 0.2},
-        #     training_params={'batch_size': 32, 'epochs': 50}
-        # ),
-        # ModelConfig(
-        #     name="lstm_large",
-        #     model_type="lstm",
-        #     model_params={'lstm_units': 128, 'dropout': 0.3},
-        #     training_params={'batch_size': 32, 'epochs': 50}
-        # ),
+        ModelConfig(
+            name="lstm_baseline",
+            model_type="lstm",
+            model_params={'lstm_units': 64, 'dropout': 0.2},
+            training_params={'batch_size': 32, 'epochs': 50}
+        ),
+        ModelConfig(
+            name="lstm_large",
+            model_type="lstm",
+            model_params={'lstm_units': 128, 'dropout': 0.3},
+            training_params={'batch_size': 32, 'epochs': 50}
+        ),
 
         # Attention LSTM models
         ModelConfig(
