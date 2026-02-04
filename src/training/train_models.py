@@ -217,30 +217,42 @@ def create_default_configs() -> List[ModelConfig]:
     configs = [
         # LSTM models
         ModelConfig(
+            name="lstm_small",
+            model_type="lstm",
+            model_params={'lstm_units': 32, 'dropout': 0.15},
+            training_params={'batch_size': 32, 'epochs': 50}
+        ),
+        ModelConfig(
             name="lstm_baseline",
             model_type="lstm",
             model_params={'lstm_units': 64, 'dropout': 0.2},
-            training_params={'batch_size': 32, 'epochs': 50}
+            training_params={'batch_size': 32, 'epochs': 75}
         ),
         ModelConfig(
             name="lstm_large",
             model_type="lstm",
             model_params={'lstm_units': 128, 'dropout': 0.3},
-            training_params={'batch_size': 32, 'epochs': 50}
+            training_params={'batch_size': 32, 'epochs': 100}
         ),
 
         # Attention LSTM models
         ModelConfig(
+            name="attention_lstm_small",
+            model_type="attention_lstm",
+            model_params={'lstm_units': 32, 'dropout': 0.15},
+            training_params={'batch_size': 32, 'epochs': 50}
+        ),
+        ModelConfig(
             name="attention_lstm_baseline",
             model_type="attention_lstm",
             model_params={'lstm_units': 64, 'dropout': 0.2},
-            training_params={'batch_size': 32, 'epochs': 50}
+            training_params={'batch_size': 32, 'epochs': 75}
         ),
         ModelConfig(
             name="attention_lstm_large",
             model_type="attention_lstm",
             model_params={'lstm_units': 128, 'dropout': 0.3},
-            training_params={'batch_size': 32, 'epochs': 50}
+            training_params={'batch_size': 32, 'epochs': 100}
         ),
 
         # BiGRU models with attention
@@ -255,7 +267,20 @@ def create_default_configs() -> List[ModelConfig]:
                 'l2_reg': 0.01,
                 'learning_rate': 0.0005
             },
-            training_params={'batch_size': 32, 'epochs': 50}
+            training_params={'batch_size': 32, 'epochs': 100}
+        ),
+        ModelConfig(
+            name="bigru_medium",
+            model_type="bigru",
+            model_params={
+                'gru_units': 96,
+                'attn_hidden': 48,
+                'dropout': 0.25,
+                'recurrent_dropout': 0.12,
+                'l2_reg': 0.012,
+                'learning_rate': 0.0004
+            },
+            training_params={'batch_size': 32, 'epochs': 125}
         ),
         ModelConfig(
             name="bigru_large",
@@ -268,7 +293,7 @@ def create_default_configs() -> List[ModelConfig]:
                 'l2_reg': 0.015,
                 'learning_rate': 0.0003
             },
-            training_params={'batch_size': 32, 'epochs': 50}
+            training_params={'batch_size': 32, 'epochs': 150}
         ),
 
         # Transformer models - tanh attention
@@ -283,7 +308,7 @@ def create_default_configs() -> List[ModelConfig]:
                 'dropout': 0.1,
                 'true_attention': False
             },
-            training_params={'batch_size': 32, 'epochs': 50}
+            training_params={'batch_size': 32, 'epochs': 100}
         ),
 
         # Transformer models - true attention
@@ -298,7 +323,7 @@ def create_default_configs() -> List[ModelConfig]:
                 'dropout': 0.1,
                 'true_attention': True
             },
-            training_params={'batch_size': 32, 'epochs': 50}
+            training_params={'batch_size': 32, 'epochs': 100}
         ),
 
         # Transformer - small
@@ -313,7 +338,22 @@ def create_default_configs() -> List[ModelConfig]:
                 'dropout': 0.1,
                 'true_attention': False
             },
-            training_params={'batch_size': 32, 'epochs': 50}
+            training_params={'batch_size': 32, 'epochs': 75}
+        ),
+
+        # Transformer - large
+        ModelConfig(
+            name="transformer_large",
+            model_type="transformer",
+            model_params={
+                'num_heads': 8,
+                'd_model': 256,
+                'ff_dim': 1024,
+                'num_blocks': 3,
+                'dropout': 0.15,
+                'true_attention': True
+            },
+            training_params={'batch_size': 32, 'epochs': 150}
         ),
     ]
 
