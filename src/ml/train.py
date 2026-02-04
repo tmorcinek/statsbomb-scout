@@ -46,18 +46,21 @@ class ModelTrainer:
             keras.callbacks.EarlyStopping(
                 monitor='val_loss',
                 patience=config.EARLY_STOPPING_PATIENCE,
-                restore_best_weights=True
+                restore_best_weights=True,
+                verbose=1
             ),
             keras.callbacks.ReduceLROnPlateau(
                 monitor='val_loss',
                 factor=config.REDUCE_LR_FACTOR,
                 patience=config.REDUCE_LR_PATIENCE,
-                min_lr=config.MIN_LEARNING_RATE
+                min_lr=config.MIN_LEARNING_RATE,
+                verbose=1
             ),
             keras.callbacks.ModelCheckpoint(
                 filepath=str(self.model_dir / "best_model.keras"),
                 monitor='val_loss',
-                save_best_only=True
+                save_best_only=True,
+                verbose=1
             )
         ]
 
