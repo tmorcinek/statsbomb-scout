@@ -218,10 +218,13 @@ class TransformerSequenceModel:
         x = layers.Dropout(self.dropout)(x)
         value_output = layers.Dense(1, activation='linear', name='value')(x)
 
+        # Wrap attention_weights in a named layer so metrics are properly tracked
+        attention_output = layers.Lambda(lambda x: x, name='attention_weights')(attention_weights)
+
         # Create model with outputs: value and attention weights
         self.model = keras.Model(
             inputs=inputs,
-            outputs={'value': value_output, 'attention_weights': attention_weights}
+            outputs={'value': value_output, 'attention_weights': attention_output}
         )
         return self.model
 
