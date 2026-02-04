@@ -24,7 +24,6 @@ def create_model(model_type: str, input_shape: tuple) -> keras.Model:
             dropout=config.DROPOUT
         )
     elif model_type == 'attention_lstm':
-        # Import here to avoid circular dependency
         from src.ml.models.attention_lstm import AttentionLSTMModel
         model_builder = AttentionLSTMModel(
             input_shape,
