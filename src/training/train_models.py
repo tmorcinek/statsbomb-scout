@@ -6,15 +6,18 @@ Usage:
 
 This script trains multiple model configurations with predefined hyperparameters
 and saves each model in a separate directory with descriptive names.
+
+Architecture:
+    Uses an object-oriented pipeline approach where each step is a PipelineStep subclass.
+    The main flow is composed using Pipeline and BranchingPipeline classes.
 """
 
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
-import numpy as np
 
 import config
 from src.data.data_loader import load_statsbomb_socceraction_data
@@ -23,18 +26,19 @@ from src.ml.models.model_factory import create_model
 from src.ml.preprocessing.sequence import SequencePreprocessor
 from src.ml.train import ModelTrainer
 from src.ml.xthreat import get_default_xt_model
+from src.training.base import PipelineStep, Pipeline, BranchingPipeline
 
 
 class ModelConfig:
     """Configuration for a single model training run."""
 
     def __init__(
-        self,
-        name: str,
-        model_type: str,
-        model_params: Dict,
-        training_params: Dict,
-        output_dir: Optional[str] = None
+            self,
+            name: str,
+            model_type: str,
+            model_params: Dict,
+            training_params: Dict,
+            output_dir: Optional[str] = None
     ):
         self.name = name
         self.model_type = model_type
@@ -53,130 +57,89 @@ class ModelConfig:
                 f"params={self.model_params}, output='{self.output_dir}')")
 
 
-class ModelTrainingPipeline:
-    """Pipeline for training multiple model configurations."""
+# ============================================================================
+# DATA STRUCTURES
+# ============================================================================
 
-    def __init__(
-        self,
-        competition_id: int = 55,
-        season_id: int = 282,
-        data_dir: str = "data/statsbomb/data"
-    ):
+class ProcessedData:
+    """Container for preprocessed training/validation/test data."""
+
+    def __init__(self, X_train, y_train, p_train, m_train,
+                 X_val, y_val, p_val, m_val,
+                 X_test, y_test, p_test, m_test):
+        self.X_train = X_train
+        self.y_train = y_train
+        self.p_train = p_train
+        self.m_train = m_train
+
+        self.X_val = X_val
+        self.y_val = y_val
+        self.p_val = p_val
+        self.m_val = m_val
+
+        self.X_test = X_test
+        self.y_test = y_test
+        self.p_test = p_test
+        self.m_test = m_test
+
+
+# ============================================================================
+# PIPELINE STEPS
+# ============================================================================
+
+class LoadDataStep(PipelineStep):
+    """Load StatsBomb data and split into train/val/test sets."""
+
+    def __init__(self, data_dir: str = "data/statsbomb/data", competition_id: int = 55, season_id: int = 282):
+        super().__init__()
+        self.data_dir = data_dir
         self.competition_id = competition_id
         self.season_id = season_id
-        self.data_dir = data_dir
 
-        # Data placeholders
-        self.data = None
-        self.train_matches = None
-        self.val_matches = None
-        self.test_matches = None
+    def process(self, data: Any = None) -> tuple:
+        data = load_statsbomb_socceraction_data(self.data_dir, self.competition_id, self.season_id)
+        return split_matches(data)
 
-        self.X_train = None
-        self.y_train = None
-        self.p_train = None
-        self.m_train = None
 
-        self.X_val = None
-        self.y_val = None
-        self.p_val = None
-        self.m_val = None
+class PreprocessDataStep(PipelineStep):
+    """Preprocess data into sequences."""
 
-        self.X_test = None
-        self.y_test = None
-        self.p_test = None
-        self.m_test = None
+    def __init__(self, sequence_length: int = config.SEQUENCE_LENGTH, minimum_sequence_length: int = config.MINIMUM_SEQUENCE_LENGTH):
+        super().__init__()
+        self.sequence_length = sequence_length
+        self.minimum_sequence_length = minimum_sequence_length
 
-        self.preprocessor = None
+    def process(self, matches_data: tuple) -> ProcessedData:
+        train_matches, val_matches, test_matches = matches_data
 
-    def load_and_split_data(self):
-        """Load data and split into train/val/test sets."""
-        print(f"\n{'='*80}")
-        print(f"Loading data: Competition {self.competition_id}, Season {self.season_id}")
-        print(f"{'='*80}")
-
-        self.data = load_statsbomb_socceraction_data(
-            self.data_dir,
-            self.competition_id,
-            self.season_id
-        )
-
-        self.train_matches, self.val_matches, self.test_matches = split_matches(self.data)
-
-        print(f"✓ Train matches: {len(self.train_matches)}")
-        print(f"✓ Val matches: {len(self.val_matches)}")
-        print(f"✓ Test matches: {len(self.test_matches)}")
-
-    def preprocess_data(
-        self,
-        sequence_length: Optional[int] = None,
-        minimum_sequence_length: Optional[int] = None
-    ):
-        """
-        Preprocess data into sequences.
-
-        This method is called ONCE and caches the processed data.
-        All subsequent model training runs will reuse this cached data.
-        """
-        # Check if data is already preprocessed
-        if self.X_train is not None:
-            print(f"\n{'='*80}")
-            print("Data already preprocessed - reusing cached data")
-            print(f"{'='*80}")
-            print(f"✓ Train set: {self.X_train.shape[0]} sequences, shape {self.X_train.shape}")
-            print(f"✓ Val set: {self.X_val.shape[0]} sequences, shape {self.X_val.shape}")
-            print(f"✓ Test set: {self.X_test.shape[0]} sequences, shape {self.X_test.shape}")
-            return
-
-        print(f"\n{'='*80}")
-        print("Preprocessing data (this will be done only once)")
-        print(f"{'='*80}")
-
-        seq_len = sequence_length or config.SEQUENCE_LENGTH
-        min_seq_len = minimum_sequence_length or config.MINIMUM_SEQUENCE_LENGTH
-
-        # Create preprocessor instance ONCE
-        self.preprocessor = SequencePreprocessor(
-            sequence_length=seq_len,
-            minimum_sequence_length=min_seq_len,
+        preprocessor = SequencePreprocessor(
+            sequence_length=self.sequence_length,
+            minimum_sequence_length=self.minimum_sequence_length,
             xt_model=get_default_xt_model()
         )
 
-        print(f"Processing training set...")
-        self.X_train, self.y_train, self.p_train, self.m_train = \
-            self.preprocessor.process_matches(self.train_matches)
+        X_train, y_train, p_train, m_train = preprocessor.process_matches(train_matches)
+        X_val, y_val, p_val, m_val = preprocessor.process_matches(val_matches)
+        X_test, y_test, p_test, m_test = preprocessor.process_matches(test_matches)
 
-        print(f"Processing validation set...")
-        self.X_val, self.y_val, self.p_val, self.m_val = \
-            self.preprocessor.process_matches(self.val_matches)
+        return ProcessedData(
+            X_train, y_train, p_train, m_train,
+            X_val, y_val, p_val, m_val,
+            X_test, y_test, p_test, m_test
+        )
 
-        print(f"Processing test set...")
-        self.X_test, self.y_test, self.p_test, self.m_test = \
-            self.preprocessor.process_matches(self.test_matches)
 
-        print(f"\n✓ Train set: {self.X_train.shape[0]} sequences, shape {self.X_train.shape}")
-        print(f"✓ Val set: {self.X_val.shape[0]} sequences, shape {self.X_val.shape}")
-        print(f"✓ Test set: {self.X_test.shape[0]} sequences, shape {self.X_test.shape}")
-        print(f"✓ Data cached in memory - will be reused for all models")
+class TrainModelStep(PipelineStep):
 
-    def train_model(self, model_config: ModelConfig) -> Dict:
-        """Train a single model with given configuration."""
-        # Validate that data is preprocessed
-        if self.X_train is None:
-            raise RuntimeError(
-                "Data not preprocessed. Call preprocess_data() before training models."
-            )
+    def __init__(self, model_config: ModelConfig):
+        super().__init__()
+        self.model_config = model_config
 
-        print(f"\n{'='*80}")
-        print(f"Training Model: {model_config.name}")
-        print(f"Type: {model_config.model_type}")
-        print(f"Output: {model_config.output_dir}")
-        print(f"{'='*80}")
+    def process(self, data: ProcessedData) -> Dict:
+        model_config = self.model_config
 
-        # Create output directory
         Path(model_config.output_dir).mkdir(parents=True, exist_ok=True)
 
-        # Save configuration
         config_path = Path(model_config.output_dir) / "config.json"
         with open(config_path, 'w') as f:
             json.dump({
@@ -186,50 +149,29 @@ class ModelTrainingPipeline:
                 'training_params': model_config.training_params,
                 'timestamp': datetime.now().isoformat()
             }, f, indent=2)
-        print(f"✓ Saved configuration to {config_path}")
 
-        # Build model
-        print(f"\nBuilding {model_config.model_type} model...")
-        input_shape = (self.X_train.shape[1], self.X_train.shape[2])
-
+        input_shape = (data.X_train.shape[1], data.X_train.shape[2])
         model = create_model(
             model_config.model_type,
             input_shape=input_shape,
             **model_config.model_params
         )
 
-        print(f"✓ Model built with input shape {input_shape}")
-
-        # Train model
-        print(f"\nTraining model...")
         trainer = ModelTrainer(model, model_config.output_dir)
 
         batch_size = model_config.training_params.get('batch_size', config.BATCH_SIZE)
         epochs = model_config.training_params.get('epochs', config.EPOCHS)
 
         trainer.train(
-            self.X_train, self.y_train,
-            self.X_val, self.y_val,
+            data.X_train, data.y_train,
+            data.X_val, data.y_val,
             batch_size=batch_size,
             epochs=epochs
         )
 
-        # Evaluate model
-        print(f"\nEvaluating model...")
-        val_metrics = trainer.evaluate(self.X_val, self.y_val)
-        test_metrics = trainer.evaluate(self.X_test, self.y_test)
+        val_metrics = trainer.evaluate(data.X_val, data.y_val)
+        test_metrics = trainer.evaluate(data.X_test, data.y_test)
 
-        print(f"\n{'='*80}")
-        print(f"Results for {model_config.name}:")
-        print(f"{'='*80}")
-        print(f"Validation Metrics:")
-        for key, value in val_metrics.items():
-            print(f"  {key}: {value:.6f}")
-        print(f"\nTest Metrics:")
-        for key, value in test_metrics.items():
-            print(f"  {key}: {value:.6f}")
-
-        # Save metrics
         all_metrics = {
             'validation': val_metrics,
             'test': test_metrics,
@@ -244,85 +186,48 @@ class ModelTrainingPipeline:
         trainer.save_training_metrics(all_metrics, filename="metrics.json")
         trainer.plot_training_history(filename="training_history.png")
 
-        print(f"\n✓ Model saved to {model_config.output_dir}")
-        print(f"✓ Best model: {model_config.output_dir}/best_model.keras")
+        return {
+            'name': model_config.name,
+            'model_type': model_config.model_type,
+            'output_dir': model_config.output_dir,
+            'val_loss': val_metrics['loss'],
+            'val_mae': val_metrics['mae'],
+            'val_rmse': val_metrics['rmse'],
+            'test_loss': test_metrics['loss'],
+            'test_mae': test_metrics['mae'],
+            'test_rmse': test_metrics['rmse'],
+            'status': 'success'
+        }
 
-        return all_metrics
 
-    def train_multiple_models(self, model_configs: List[ModelConfig]) -> pd.DataFrame:
-        """Train multiple models and return comparison DataFrame."""
-        results = []
+class SaveResultsStep(PipelineStep):
+    """Save and display training results."""
 
-        print(f"\n{'='*80}")
-        print(f"Training {len(model_configs)} models")
-        print(f"{'='*80}")
-
-        for i, model_config in enumerate(model_configs, 1):
-            print(f"\n\n{'#'*80}")
-            print(f"# Model {i}/{len(model_configs)}: {model_config.name}")
-            print(f"{'#'*80}")
-
-            try:
-                metrics = self.train_model(model_config)
-
-                results.append({
-                    'name': model_config.name,
-                    'model_type': model_config.model_type,
-                    'output_dir': model_config.output_dir,
-                    'val_loss': metrics['validation']['loss'],
-                    'val_mae': metrics['validation']['mae'],
-                    'val_rmse': metrics['validation']['rmse'],
-                    'test_loss': metrics['test']['loss'],
-                    'test_mae': metrics['test']['mae'],
-                    'test_rmse': metrics['test']['rmse'],
-                    'status': 'success'
-                })
-
-            except Exception as e:
-                print(f"\n❌ Error training {model_config.name}: {e}")
-                results.append({
-                    'name': model_config.name,
-                    'model_type': model_config.model_type,
-                    'output_dir': model_config.output_dir,
-                    'val_loss': np.nan,
-                    'val_mae': np.nan,
-                    'val_rmse': np.nan,
-                    'test_loss': np.nan,
-                    'test_mae': np.nan,
-                    'test_rmse': np.nan,
-                    'status': f'failed: {str(e)}'
-                })
-
-        results_df = pd.DataFrame(results)
-
-        # Save comparison
+    def process(self, results: Dict) -> Dict:
+        results_list = list(results.values())
+        results_df = pd.DataFrame(results_list)
         comparison_file = "models/model_comparison.csv"
         results_df.to_csv(comparison_file, index=False)
-        print(f"\n{'='*80}")
-        print(f"Training Complete!")
-        print(f"{'='*80}")
-        print(f"Results saved to: {comparison_file}")
-        print(f"\n{results_df.to_string()}")
 
-        return results_df
+        return results
 
 
 def create_default_configs() -> List[ModelConfig]:
     """Create default model configurations for comparison."""
     configs = [
         # LSTM models
-        ModelConfig(
-            name="lstm_baseline",
-            model_type="lstm",
-            model_params={'lstm_units': 64, 'dropout': 0.2},
-            training_params={'batch_size': 32, 'epochs': 50}
-        ),
-        ModelConfig(
-            name="lstm_large",
-            model_type="lstm",
-            model_params={'lstm_units': 128, 'dropout': 0.3},
-            training_params={'batch_size': 32, 'epochs': 50}
-        ),
+        # ModelConfig(
+        #     name="lstm_baseline",
+        #     model_type="lstm",
+        #     model_params={'lstm_units': 64, 'dropout': 0.2},
+        #     training_params={'batch_size': 32, 'epochs': 50}
+        # ),
+        # ModelConfig(
+        #     name="lstm_large",
+        #     model_type="lstm",
+        #     model_params={'lstm_units': 128, 'dropout': 0.3},
+        #     training_params={'batch_size': 32, 'epochs': 50}
+        # ),
 
         # Attention LSTM models
         ModelConfig(
@@ -415,39 +320,40 @@ def create_default_configs() -> List[ModelConfig]:
     return configs
 
 
-def main():
-    """Train default model configurations."""
-    # Initialize pipeline
-    pipeline = ModelTrainingPipeline(
-        competition_id=55,
-        season_id=282
-    )
+def create_training_pipeline(competition_id: int,season_id: int) -> Pipeline:
+    """
+    Create the main training pipeline.
 
-    # Load and preprocess data ONCE - will be cached and reused for all models
-    print("\n" + "="*80)
-    print("STEP 1: Loading and preprocessing data (done once)")
-    print("="*80)
-    pipeline.load_and_split_data()
-    pipeline.preprocess_data()
+    Data flow:
+    1. LoadDataStep: None -> (train_matches, val_matches, test_matches)
+    2. PreprocessDataStep: matches -> ProcessedData
+    3. BranchingPipeline: ProcessedData -> {model_name: result_dict}
+    4. SaveResultsStep: results_dict -> results_dict (saved to CSV)
 
-    print("\n" + "="*80)
-    print("STEP 2: Preparing model configurations")
-    print("="*80)
+    Args:
+        competition_id: StatsBomb competition ID
+        season_id: StatsBomb season ID
 
-    # Use default configurations
-    print("\nUsing default model configurations")
+    Returns:
+        Configured Pipeline
+    """
+    # Create model training steps for each configuration
     model_configs = create_default_configs()
+    model_branches = {
+        cfg.name: TrainModelStep(model_config=cfg)
+        for cfg in model_configs
+    }
 
-    # Train models (data is already cached in memory)
-    print("\n" + "="*80)
-    print("STEP 3: Training models (using cached data)")
-    print("="*80)
-    results_df = pipeline.train_multiple_models(model_configs)
+    # Create main pipeline
+    pipeline = Pipeline(name="ModelTrainingPipeline")
+    pipeline.add_step(LoadDataStep(competition_id=competition_id, season_id=season_id))
+    pipeline.add_step(PreprocessDataStep())
+    pipeline.add_step(BranchingPipeline(name="BranchingPipeline", branches=model_branches))
+    pipeline.add_step(SaveResultsStep())
 
-    print(f"\n{'='*80}")
-    print("All models trained successfully!")
-    print(f"{'='*80}")
+    return pipeline
 
 
 if __name__ == "__main__":
-    main()
+    pipeline = create_training_pipeline(competition_id=55, season_id=282)
+    final_results = pipeline(None)

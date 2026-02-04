@@ -118,7 +118,8 @@ class ModelTrainer:
 
         if filename:
             plt.savefig(self.model_dir / filename)
-        plt.show()
+        else:
+            plt.show()
 
     def save_training_metrics(self, metrics: Dict, filename: str = "metrics.json"):
         save_path = self.model_dir / filename
