@@ -15,7 +15,8 @@ TEST_SPLIT = 0.1
 
 # MODEL_TYPE = 'lstm'
 # MODEL_TYPE = 'transformer'
-MODEL_TYPE = 'attention_lstm'
+# MODEL_TYPE = 'attention_lstm'
+# MODEL_TYPE = 'bigru'
 
 # LSTM parameters
 LSTM_UNITS = 128

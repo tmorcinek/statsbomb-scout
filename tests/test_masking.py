@@ -490,3 +490,135 @@ class TestTransformerTrueAttentionModelMasking:
         assert np.all(attention_weights[0, :7] > 0)
         assert np.all(attention_weights[1, :4] > 0)
 
+
+class TestBiGRUModelMasking:
+    """Tests for BiGRU model masking and attention weights."""
+
+    @pytest.fixture
+    def test_data(self):
+        """Fixture with test data: sequences with padding."""
+        sequence_length = 10
+        num_features = 5
+        batch_size = 2
+
+        X = np.random.randn(batch_size, sequence_length, num_features).astype(np.float32)
+        X[0, 7:, :] = 0.0  # Padding for first sequence
+        X[1, 4:, :] = 0.0  # Padding for second sequence
+
+        return X, sequence_length, num_features
+
+    @pytest.fixture
+    def bigru_model(self, test_data):
+        """Fixture with compiled BiGRU model."""
+        from src.ml.models.bigru import build_seq_value_model
+
+        _, sequence_length, num_features = test_data
+        model = build_seq_value_model(
+            input_shape=(sequence_length, num_features),
+            rnn_units=32,
+            attn_hidden=16,
+            dropout=0.2,
+            return_attention=True  # W testach chcemy attention
+        )
+        model.compile(
+            optimizer='adam',
+            loss={'value': 'mse', 'attention_weights': 'mse'},
+            loss_weights={'value': 1.0, 'attention_weights': 0.0},
+            metrics={'value': ['mae']}
+        )
+        return model
+
+    def test_bigru_has_masking_layer(self, test_data):
+        """Test if BiGRU model has Masking layer."""
+        from src.ml.models.bigru import build_seq_value_model
+
+        _, sequence_length, num_features = test_data
+        model = build_seq_value_model(
+            input_shape=(sequence_length, num_features),
+            rnn_units=32,
+            attn_hidden=16,
+            dropout=0.2,
+            return_attention=False
+        )
+
+        # Second layer should be Masking (first is Input)
+        assert len(model.layers) >= 2
+        masking_layer = model.layers[1]
+        assert isinstance(masking_layer, layers.Masking)
+        assert masking_layer.mask_value == 0.0
+
+    def test_bigru_outputs_dict(self, test_data, bigru_model):
+        """Test if BiGRU outputs dictionary with 'value' and 'attention_weights'."""
+        X, *_ = test_data
+        outputs = bigru_model.predict(X, verbose=0)
+
+        assert isinstance(outputs, dict)
+        assert 'value' in outputs
+        assert 'attention_weights' in outputs
+
+    def test_bigru_attention_weights_shape(self, test_data, bigru_model):
+        """Test if attention weights have correct shape (batch, seq_len)."""
+        X, sequence_length, _ = test_data
+        outputs = bigru_model.predict(X, verbose=0)
+        attention_weights = outputs['attention_weights']
+
+        assert attention_weights.shape == (2, sequence_length)
+
+    def test_bigru_attention_weights_sum_to_one(self, test_data, bigru_model):
+        """Test if attention weights sum to 1.0 for each sequence."""
+        X, *_ = test_data
+        attention_weights = bigru_model.predict(X, verbose=0)['attention_weights']
+
+        for i in range(attention_weights.shape[0]):
+            weight_sum = attention_weights[i].sum()
+            assert np.isclose(weight_sum, 1.0, atol=1e-5), \
+                f"Attention weights for sequence {i} should sum to 1.0, got {weight_sum}"
+
+    def test_bigru_attention_weights_zero_for_padding(self, test_data, bigru_model):
+        """Test if attention weights are zero for padded timesteps."""
+        X, *_ = test_data
+        attention_weights = bigru_model.predict(X, verbose=0)['attention_weights']
+
+        # Sequence 0: padding from index 7
+        assert np.allclose(attention_weights[0, 7:], 0.0, atol=1e-6), \
+            f"Padding weights for seq 0 should be ~0, got {attention_weights[0, 7:]}"
+
+        # Sequence 1: padding from index 4
+        assert np.allclose(attention_weights[1, 4:], 0.0, atol=1e-6), \
+            f"Padding weights for seq 1 should be ~0, got {attention_weights[1, 4:]}"
+
+    def test_bigru_attention_weights_positive_for_valid_steps(self, test_data, bigru_model):
+        """Test if attention weights are positive for valid (non-padded) timesteps."""
+        X, *_ = test_data
+        attention_weights = bigru_model.predict(X, verbose=0)['attention_weights']
+
+        # Sequence 0: valid timesteps 0-6
+        assert np.all(attention_weights[0, :7] > 0), \
+            f"Valid timesteps should have positive weights, got {attention_weights[0, :7]}"
+
+        # Sequence 1: valid timesteps 0-3
+        assert np.all(attention_weights[1, :4] > 0), \
+            f"Valid timesteps should have positive weights, got {attention_weights[1, :4]}"
+
+    def test_bigru_handles_different_padding_lengths(self, bigru_model):
+        """Test if BiGRU handles sequences with different amounts of padding."""
+        # Create sequences with varying padding
+        X1 = np.random.randn(1, 10, 5).astype(np.float32)
+        X1[0, 2:, :] = 0.0  # Only 2 valid timesteps
+
+        X2 = np.random.randn(1, 10, 5).astype(np.float32)
+        X2[0, 9:, :] = 0.0  # 9 valid timesteps
+
+        outputs1 = bigru_model.predict(X1, verbose=0)
+        outputs2 = bigru_model.predict(X2, verbose=0)
+
+        attn1 = outputs1['attention_weights'][0]
+        attn2 = outputs2['attention_weights'][0]
+
+        # Check masking works for both
+        assert np.allclose(attn1[2:], 0.0, atol=1e-6)
+        assert np.allclose(attn2[9:], 0.0, atol=1e-6)
+
+        # Check valid steps have positive weights
+        assert np.all(attn1[:2] > 0)
+        assert np.all(attn2[:9] > 0)
