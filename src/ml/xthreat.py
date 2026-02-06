@@ -10,8 +10,8 @@ from socceraction.data.statsbomb import StatsBombLoader
 from socceraction.xthreat import load_model, ExpectedThreat
 
 
-def get_default_xt_model() -> ExpectedThreat:
-    return load_model("models/xt_models/default_xt_model.json")
+def get_default_xt_model(file_path: str = "models/xt_models/default_xt_model.json") -> ExpectedThreat:
+    return load_model(file_path)
 
 
 def get_xt_model_for_competition(season_id: int, competition_id: int) -> ExpectedThreat:
