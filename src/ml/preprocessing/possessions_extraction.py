@@ -5,7 +5,7 @@ import warnings
 import pandas as pd
 import socceraction.spadl as spadl
 
-from src.ml.action_valuation import calculate_xg_values
+from .action_valuation import calculate_xg_values
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 

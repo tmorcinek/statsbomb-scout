@@ -9,9 +9,9 @@ import pandas as pd
 import socceraction.spadl.config as spadl_config
 from socceraction.xthreat import ExpectedThreat
 
-from src.ml.action_valuation import calculate_xt_values, get_actions_value
+from src.ml.preprocessing.action_valuation import calculate_xt_values, get_actions_value
 from src.ml.preprocessing.possessions_extraction import extract_possessions
-from src.ml.xthreat import get_default_xt_model
+from src.ml.preprocessing.xthreat import get_default_xt_model
 
 warnings.filterwarnings('ignore', category=FutureWarning, module='socceraction')
 pd.set_option('future.no_silent_downcasting', True)

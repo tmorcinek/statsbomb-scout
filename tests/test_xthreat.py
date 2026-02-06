@@ -2,7 +2,7 @@
 
 import numpy as np
 import os
-from src.ml.xthreat import get_xt_model_for_competition, get_model_filename
+from src.ml.preprocessing.xthreat import get_xt_model_for_competition, get_model_filename
 from socceraction.xthreat import ExpectedThreat
 
 

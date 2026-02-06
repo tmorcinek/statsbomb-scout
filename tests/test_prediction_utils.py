@@ -13,8 +13,8 @@ from src.analysis.prediction_utils import (
     visualize_top_sequences_matches
 )
 from src.data.data_loader import load_statsbomb_socceraction_data
-from src.ml.preprocessing.sequence import SequencePreprocessor, PreprocessingMode
-from src.ml.xthreat import get_default_xt_model
+from src.ml.preprocessing.sequence_preprocessor import SequencePreprocessor, PreprocessingMode
+from src.ml.preprocessing.xthreat import get_default_xt_model
 
 SEQUENCE_LENGTH = 6
 MINIMUM_SEQUENCE_LENGTH = 3

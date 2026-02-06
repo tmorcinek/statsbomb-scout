@@ -61,8 +61,9 @@ predictions = model.predict(X_test)
 ```
 
 ### Załaduj xT model:
+
 ```python
-from src.ml.xthreat import get_default_xt_model
+from src.ml.preprocessing.xthreat import get_default_xt_model
 
 xt_model = get_default_xt_model()
 ```
