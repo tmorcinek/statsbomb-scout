@@ -1,0 +1,17 @@
+{
+  "name": "transformer_baseline",
+  "model_type": "transformer",
+  "model_params": {
+    "num_heads": 4,
+    "d_model": 128,
+    "ff_dim": 512,
+    "num_blocks": 2,
+    "dropout": 0.1,
+    "true_attention": false
+  },
+  "training_params": {
+    "batch_size": 32,
+    "epochs": 100
+  },
+  "timestamp": "2026-02-05T03:04:33.013481"
+}

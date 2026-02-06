@@ -1,0 +1,13 @@
+{
+  "name": "lstm_baseline",
+  "model_type": "lstm",
+  "model_params": {
+    "lstm_units": 64,
+    "dropout": 0.2
+  },
+  "training_params": {
+    "batch_size": 32,
+    "epochs": 75
+  },
+  "timestamp": "2026-02-04T23:31:25.734856"
+}

@@ -1,0 +1,13 @@
+{
+  "name": "attention_lstm_small",
+  "model_type": "attention_lstm",
+  "model_params": {
+    "lstm_units": 32,
+    "dropout": 0.15
+  },
+  "training_params": {
+    "batch_size": 32,
+    "epochs": 50
+  },
+  "timestamp": "2026-02-04T23:39:09.173534"
+}

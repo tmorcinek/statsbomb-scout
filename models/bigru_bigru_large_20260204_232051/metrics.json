@@ -1,0 +1,28 @@
+{
+  "validation": {
+    "loss": 0.00168752227909863,
+    "mae": 0.014242331497371197,
+    "rmse": 0.0352452181591276
+  },
+  "test": {
+    "loss": 0.001303848228417337,
+    "mae": 0.012508631683886051,
+    "rmse": 0.029301064825273136
+  },
+  "config": {
+    "name": "bigru_large",
+    "model_type": "bigru",
+    "model_params": {
+      "gru_units": 128,
+      "attn_hidden": 64,
+      "dropout": 0.3,
+      "recurrent_dropout": 0.15,
+      "l2_reg": 0.015,
+      "learning_rate": 0.0003
+    },
+    "training_params": {
+      "batch_size": 32,
+      "epochs": 150
+    }
+  }
+}

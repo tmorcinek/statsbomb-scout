@@ -1,0 +1,24 @@
+{
+  "validation": {
+    "loss": 0.0007133402395993471,
+    "mae": 0.008276471868157387,
+    "rmse": 0.02670843219773818
+  },
+  "test": {
+    "loss": 0.0004075896576978266,
+    "mae": 0.007028383202850819,
+    "rmse": 0.020188851344964835
+  },
+  "config": {
+    "name": "lstm_baseline",
+    "model_type": "lstm",
+    "model_params": {
+      "lstm_units": 64,
+      "dropout": 0.2
+    },
+    "training_params": {
+      "batch_size": 32,
+      "epochs": 75
+    }
+  }
+}
