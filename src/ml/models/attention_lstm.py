@@ -79,9 +79,7 @@ class AttentionLSTMModel:
         x = layers.Masking(mask_value=0.0)(inputs)
 
         # Bidirectional LSTM to capture context from both directions
-        x = layers.Bidirectional(
-            layers.LSTM(self.lstm_units, return_sequences=True)
-        )(x)
+        x = layers.Bidirectional(layers.LSTM(self.lstm_units, return_sequences=True))(x)
         x = layers.Dropout(self.dropout)(x)
 
         # Second LSTM layer (also return sequences for attention)
