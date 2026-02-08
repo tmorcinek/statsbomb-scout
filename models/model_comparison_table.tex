@@ -1,0 +1,14 @@
+\begin{table}
+\caption{Porównanie architektur modeli}
+\label{tab:model_comparison}
+\begin{tabular}{llll}
+\toprule
+Model & Total Parameters & Trainable Parameters & Architecture \\
+\midrule
+LSTM & 129,921 & 129,921 & LSTM → LSTM → Dense \\
+Attention LSTM & 358,175 & 358,175 & Bi-LSTM → LSTM → Attention → Dense \\
+BiGRU & 165,762 & 165,506 & Bi-GRU → Temporal Attention → Dense \\
+Transformer & 411,551 & 411,551 & Positional Encoding → Transformer Blocks → Pooling → Dense \\
+\bottomrule
+\end{tabular}
+\end{table}
