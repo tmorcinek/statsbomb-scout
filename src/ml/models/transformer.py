@@ -110,7 +110,7 @@ class AttentionWeightsLayer(layers.Layer):
 
 class TransformerSequenceModel:
 
-    def __init__(self, input_shape: tuple, num_heads: int = 4, d_model: int = 128, ff_dim: int = 512, num_blocks: int = 2, dropout: float = 0.1, true_attention: bool = False):
+    def __init__(self, input_shape: tuple, num_heads: int = 4, d_model: int = 128, ff_dim: int = 512, num_blocks: int = 2, dropout: float = 0.1, true_attention: bool = False, layer_norm_epsilon: float = 1e-6):
         if d_model % num_heads != 0:
             raise ValueError(f"d_model ({d_model}) must be divisible by num_heads ({num_heads})")
         self.input_shape = input_shape
@@ -120,6 +120,7 @@ class TransformerSequenceModel:
         self.num_blocks = num_blocks
         self.dropout = dropout
         self.true_attention = true_attention
+        self.layer_norm_epsilon = layer_norm_epsilon
         self.model = None
 
     def transformer_encoder(self, inputs, is_last_block=False):
@@ -140,12 +141,12 @@ class TransformerSequenceModel:
             attention_weights = None
         attention_output = layers.Dropout(self.dropout)(attention_output)
         attention_output = layers.Add()([inputs, attention_output])
-        attention_output = layers.LayerNormalization(epsilon=1e-6)(attention_output)
+        attention_output = layers.LayerNormalization(epsilon=self.layer_norm_epsilon)(attention_output)
         ff_output = layers.Dense(self.ff_dim, activation='relu')(attention_output)
         ff_output = layers.Dense(self.d_model)(ff_output)
         ff_output = layers.Dropout(self.dropout)(ff_output)
         output = layers.Add()([attention_output, ff_output])
-        output = layers.LayerNormalization(epsilon=1e-6)(output)
+        output = layers.LayerNormalization(epsilon=self.layer_norm_epsilon)(output)
         if is_last_block:
             return output, attention_weights
         return output
@@ -158,17 +159,16 @@ class TransformerSequenceModel:
             max_seq_len=self.input_shape[0],
             d_model=self.d_model
         )(x)
-        for i in range(self.num_blocks - 1):
+        for _ in range(self.num_blocks - 1):
             x = self.transformer_encoder(x, is_last_block=False)
         x, attention_weights = self.transformer_encoder(x, is_last_block=True)
         x = layers.GlobalAveragePooling1D()(x)
         x = layers.Dense(64, activation='relu')(x)
         x = layers.Dropout(self.dropout)(x)
         value_output = layers.Dense(1, activation='linear', name='value')(x)
-        attention_output = layers.Lambda(lambda x: x, name='attention_weights')(attention_weights)
         self.model = keras.Model(
             inputs=inputs,
-            outputs={'value': value_output, 'attention_weights': attention_output}
+            outputs={'value': value_output, 'attention_weights': attention_weights}
         )
         return self.model
 
