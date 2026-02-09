@@ -12,7 +12,8 @@ def create_model(model_type: str, input_shape: tuple, **kwargs) -> keras.Model:
         model_builder = LSTMSequenceModel(
             input_shape,
             lstm_units=kwargs.get('lstm_units', config.LSTM_UNITS),
-            dropout=kwargs.get('dropout', config.DROPOUT)
+            dropout=kwargs.get('dropout', config.DROPOUT),
+            use_second_lstm=kwargs.get('use_second_lstm', True)
         )
     elif model_type == 'transformer':
         model_builder = TransformerSequenceModel(
@@ -21,8 +22,7 @@ def create_model(model_type: str, input_shape: tuple, **kwargs) -> keras.Model:
             d_model=kwargs.get('d_model', config.TRANSFORMER_DIM),
             ff_dim=kwargs.get('ff_dim', config.TRANSFORMER_FF_DIM),
             num_blocks=kwargs.get('num_blocks', config.TRANSFORMER_BLOCKS),
-            dropout=kwargs.get('dropout', config.DROPOUT),
-            true_attention=kwargs.get('true_attention', False)
+            dropout=kwargs.get('dropout', config.DROPOUT)
         )
     elif model_type == 'attention_lstm':
         from src.ml.models.attention_lstm import AttentionLSTMModel
@@ -75,8 +75,8 @@ def load_model(model_type: str, model_dir: str = None) -> keras.Model:
         from src.ml.models.attention_lstm import AttentionLayer
         custom_objects['AttentionLayer'] = AttentionLayer
     elif model_type == 'transformer':
-        from src.ml.models.transformer import AttentionWeightsLayer, AddPositionalEncoding
-        custom_objects['AttentionWeightsLayer'] = AttentionWeightsLayer
+        from src.ml.models.transformer import MultiHeadAttentionWithWeights, AddPositionalEncoding
+        custom_objects['MultiHeadAttentionWithWeights'] = MultiHeadAttentionWithWeights
         custom_objects['AddPositionalEncoding'] = AddPositionalEncoding
     elif model_type == 'bigru':
         from src.ml.models.bigru import TemporalAttentionPooling, build_seq_value_model

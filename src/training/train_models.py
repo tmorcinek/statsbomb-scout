@@ -432,6 +432,42 @@ def create_lstm_second_lstm_configs() -> List[ModelConfig]:
     ]
     return configs
 
+def create_transformers_config() -> List[ModelConfig]:
+    configs = [
+        ModelConfig(
+            name="lstm_large_single_lstm",
+            model_type="lstm",
+            model_params={'lstm_units': 128, 'dropout': 0.3, 'use_second_lstm': False},
+            training_params={'batch_size': 32, 'epochs': 100}
+        ),
+        ModelConfig(
+            name="transformer_baseline",
+            model_type="transformer",
+            model_params={
+                'num_heads': 4,
+                'd_model': 128,
+                'ff_dim': 512,
+                'num_blocks': 2,
+                'dropout': 0.1,
+            },
+            training_params={'batch_size': 32, 'epochs': 100}
+        ),
+        ModelConfig(
+            name="transformer_small",
+            model_type="transformer",
+            model_params={
+                'num_heads': 2,
+                'd_model': 64,
+                'ff_dim': 256,
+                'num_blocks': 2,
+                'dropout': 0.1,
+                'true_attention': False
+            },
+            training_params={'batch_size': 32, 'epochs': 75}
+        ),
+    ]
+    return configs
+
 
 def create_comparison_pipeline(
     configs: List[ModelConfig],
@@ -452,8 +488,8 @@ def create_comparison_pipeline(
 
 if __name__ == "__main__":
     lstm_pipeline = create_comparison_pipeline(
-        configs=create_lstm_second_lstm_configs(),
-        pipeline_name="ComparisonPipeline_LSTM_DenseUnits",
+        configs=create_transformers_config(),
+        pipeline_name="model_comparison_transformer",
         competition_id=55,
         season_id=282
     )
