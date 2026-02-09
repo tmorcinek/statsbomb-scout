@@ -402,6 +402,37 @@ def create_lstm_configs() -> List[ModelConfig]:
     return configs
 
 
+def create_lstm_second_lstm_configs() -> List[ModelConfig]:
+    """Test impact of second LSTM layer with use_second_lstm flag"""
+    configs = [
+        ModelConfig(
+            name="lstm_baseline_single_lstm",
+            model_type="lstm",
+            model_params={'lstm_units': 64, 'dropout': 0.2, 'use_second_lstm': False},
+            training_params={'batch_size': 32, 'epochs': 75}
+        ),
+        ModelConfig(
+            name="lstm_baseline_double_lstm",
+            model_type="lstm",
+            model_params={'lstm_units': 64, 'dropout': 0.2, 'use_second_lstm': True},
+            training_params={'batch_size': 32, 'epochs': 75}
+        ),
+        ModelConfig(
+            name="lstm_large_single_lstm",
+            model_type="lstm",
+            model_params={'lstm_units': 128, 'dropout': 0.3, 'use_second_lstm': False},
+            training_params={'batch_size': 32, 'epochs': 100}
+        ),
+        ModelConfig(
+            name="lstm_large_double_lstm",
+            model_type="lstm",
+            model_params={'lstm_units': 128, 'dropout': 0.3, 'use_second_lstm': True},
+            training_params={'batch_size': 32, 'epochs': 100}
+        ),
+    ]
+    return configs
+
+
 def create_comparison_pipeline(
     configs: List[ModelConfig],
     pipeline_name: str = "ComparisonPipeline",
@@ -414,24 +445,16 @@ def create_comparison_pipeline(
     pipeline.add_step(LoadDataStep(competition_id=competition_id, season_id=season_id))
     pipeline.add_step(PreprocessDataStep())
     pipeline.add_step(BranchingPipeline(branches=model_branches))
-    pipeline.add_step(SaveResultsStep("models/model_comparison_lstm.csv"))
+    pipeline.add_step(SaveResultsStep(f"models/{pipeline_name}.csv"))
 
     return pipeline
 
 
 if __name__ == "__main__":
     lstm_pipeline = create_comparison_pipeline(
-        configs=create_lstm_configs(),
+        configs=create_lstm_second_lstm_configs(),
+        pipeline_name="ComparisonPipeline_LSTM_DenseUnits",
         competition_id=55,
         season_id=282
     )
     lstm_results = lstm_pipeline(None)
-
-    # all_configs = create_default_configs()
-    # full_pipeline = create_comparison_pipeline(
-    #     configs=all_configs,
-    #     pipeline_name="FullModelComparisonPipeline",
-    #     competition_id=55,
-    #     season_id=282
-    # )
-    # full_results = full_pipeline(None)

@@ -224,7 +224,7 @@ def main():
     parser.add_argument(
         '--comparison-file',
         type=str,
-        default='models/model_comparison_lstm.csv',
+        default='models/ComparisonPipeline_LSTM_DenseUnits.csv',
         help='Path to model comparison CSV file'
     )
 
