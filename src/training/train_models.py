@@ -1,17 +1,3 @@
-"""
-Model Training Script - Train default model configurations
-
-Usage:
-    python train_models.py
-
-This script trains multiple model configurations with predefined hyperparameters
-and saves each model in a separate directory with descriptive names.
-
-Architecture:
-    Uses an object-oriented pipeline approach where each step is a PipelineStep subclass.
-    The main flow is composed using Pipeline and BranchingPipeline classes.
-"""
-
 import json
 from datetime import datetime
 from pathlib import Path
@@ -30,7 +16,6 @@ from src.training.base import PipelineStep, Pipeline, BranchingPipeline
 
 
 class ModelConfig:
-    """Configuration for a single model training run."""
 
     def __init__(
             self,
@@ -62,7 +47,6 @@ class ModelConfig:
 # ============================================================================
 
 class ProcessedData:
-    """Container for preprocessed training/validation/test data."""
 
     def __init__(self, X_train, y_train, p_train, m_train,
                  X_val, y_val, p_val, m_val,
@@ -88,7 +72,6 @@ class ProcessedData:
 # ============================================================================
 
 class LoadDataStep(PipelineStep):
-    """Load StatsBomb data and split into train/val/test sets."""
 
     def __init__(self, data_dir: str = "data/statsbomb/data", competition_id: int = 55, season_id: int = 282):
         super().__init__()
@@ -102,7 +85,6 @@ class LoadDataStep(PipelineStep):
 
 
 class PreprocessDataStep(PipelineStep):
-    """Preprocess data into sequences."""
 
     def __init__(self, sequence_length: int = config.SEQUENCE_LENGTH, minimum_sequence_length: int = config.MINIMUM_SEQUENCE_LENGTH):
         super().__init__()
@@ -201,19 +183,19 @@ class TrainModelStep(PipelineStep):
 
 
 class SaveResultsStep(PipelineStep):
-    """Save and display training results."""
+
+    def __init__(self, comparison_file: str = "models/model_comparison.csv"):
+        super().__init__()
+        self.comparison_file = comparison_file
 
     def process(self, results: Dict) -> Dict:
         results_list = list(results.values())
         results_df = pd.DataFrame(results_list)
-        comparison_file = "models/model_comparison.csv"
-        results_df.to_csv(comparison_file, index=False)
-
+        results_df.to_csv(self.comparison_file, index=False)
         return results
 
 
 def create_default_configs() -> List[ModelConfig]:
-    """Create default model configurations for comparison."""
     configs = [
         # LSTM models
         ModelConfig(
@@ -360,40 +342,96 @@ def create_default_configs() -> List[ModelConfig]:
     return configs
 
 
-def create_training_pipeline(competition_id: int,season_id: int) -> Pipeline:
-    """
-    Create the main training pipeline.
+def create_lstm_configs() -> List[ModelConfig]:
+    configs = [
+        ModelConfig(
+            name="lstm_small_dense64",
+            model_type="lstm",
+            model_params={'lstm_units': 32, 'dropout': 0.15, 'dense_units': 64},
+            training_params={'batch_size': 32, 'epochs': 50}
+        ),
+        ModelConfig(
+            name="lstm_small_dense128",
+            model_type="lstm",
+            model_params={'lstm_units': 32, 'dropout': 0.15, 'dense_units': 128},
+            training_params={'batch_size': 32, 'epochs': 50}
+        ),
+        ModelConfig(
+            name="lstm_baseline_dense64",
+            model_type="lstm",
+            model_params={'lstm_units': 64, 'dropout': 0.2, 'dense_units': 64},
+            training_params={'batch_size': 32, 'epochs': 75}
+        ),
+        ModelConfig(
+            name="lstm_baseline_dense128",
+            model_type="lstm",
+            model_params={'lstm_units': 64, 'dropout': 0.2, 'dense_units': 128},
+            training_params={'batch_size': 32, 'epochs': 75}
+        ),
+        ModelConfig(
+            name="lstm_large_dense64",
+            model_type="lstm",
+            model_params={'lstm_units': 128, 'dropout': 0.3, 'dense_units': 64},
+            training_params={'batch_size': 32, 'epochs': 100}
+        ),
+        ModelConfig(
+            name="lstm_large_dense128",
+            model_type="lstm",
+            model_params={'lstm_units': 128, 'dropout': 0.3, 'dense_units': 128},
+            training_params={'batch_size': 32, 'epochs': 100}
+        ),
+        ModelConfig(
+            name="lstm_small_no_dense",
+            model_type="lstm",
+            model_params={'lstm_units': 32, 'dropout': 0.15, 'dense_units': None},
+            training_params={'batch_size': 32, 'epochs': 50}
+        ),
+        ModelConfig(
+            name="lstm_baseline_no_dense",
+            model_type="lstm",
+            model_params={'lstm_units': 64, 'dropout': 0.2, 'dense_units': None},
+            training_params={'batch_size': 32, 'epochs': 75}
+        ),
+        ModelConfig(
+            name="lstm_large_no_dense",
+            model_type="lstm",
+            model_params={'lstm_units': 128, 'dropout': 0.3, 'dense_units': None},
+            training_params={'batch_size': 32, 'epochs': 100}
+        ),
+    ]
+    return configs
 
-    Data flow:
-    1. LoadDataStep: None -> (train_matches, val_matches, test_matches)
-    2. PreprocessDataStep: matches -> ProcessedData
-    3. BranchingPipeline: ProcessedData -> {model_name: result_dict}
-    4. SaveResultsStep: results_dict -> results_dict (saved to CSV)
 
-    Args:
-        competition_id: StatsBomb competition ID
-        season_id: StatsBomb season ID
+def create_comparison_pipeline(
+    configs: List[ModelConfig],
+    pipeline_name: str = "ComparisonPipeline",
+    competition_id: int = 55,
+    season_id: int = 282
+) -> Pipeline:
+    model_branches = {cfg.name: TrainModelStep(model_config=cfg)for cfg in configs}
 
-    Returns:
-        Configured Pipeline
-    """
-    # Create model training steps for each configuration
-    model_configs = create_default_configs()
-    model_branches = {
-        cfg.name: TrainModelStep(model_config=cfg)
-        for cfg in model_configs
-    }
-
-    # Create main pipeline
-    pipeline = Pipeline(name="ModelTrainingPipeline")
+    pipeline = Pipeline(name=pipeline_name)
     pipeline.add_step(LoadDataStep(competition_id=competition_id, season_id=season_id))
     pipeline.add_step(PreprocessDataStep())
-    pipeline.add_step(BranchingPipeline(name="BranchingPipeline", branches=model_branches))
-    pipeline.add_step(SaveResultsStep())
+    pipeline.add_step(BranchingPipeline(branches=model_branches))
+    pipeline.add_step(SaveResultsStep("models/model_comparison_lstm.csv"))
 
     return pipeline
 
 
 if __name__ == "__main__":
-    pipeline = create_training_pipeline(competition_id=55, season_id=282)
-    final_results = pipeline(None)
+    lstm_pipeline = create_comparison_pipeline(
+        configs=create_lstm_configs(),
+        competition_id=55,
+        season_id=282
+    )
+    lstm_results = lstm_pipeline(None)
+
+    # all_configs = create_default_configs()
+    # full_pipeline = create_comparison_pipeline(
+    #     configs=all_configs,
+    #     pipeline_name="FullModelComparisonPipeline",
+    #     competition_id=55,
+    #     season_id=282
+    # )
+    # full_results = full_pipeline(None)

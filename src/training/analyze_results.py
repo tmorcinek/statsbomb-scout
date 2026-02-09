@@ -72,7 +72,7 @@ def print_summary(df: pd.DataFrame):
     print("TOP 10 MODELS (by test MAE)")
     print("-"*80)
 
-    top10 = df_success.nsmallest(10, 'test_mae')[
+    top10 = df_success.nsmallest(16, 'test_mae')[
         ['name', 'model_type', 'test_mae', 'test_rmse', 'val_mae']
     ]
     print(f"\n{top10.to_string(index=False)}")
@@ -224,7 +224,7 @@ def main():
     parser.add_argument(
         '--comparison-file',
         type=str,
-        default='models/model_comparison.csv',
+        default='models/model_comparison_lstm.csv',
         help='Path to model comparison CSV file'
     )
 

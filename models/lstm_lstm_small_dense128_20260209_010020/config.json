@@ -1,0 +1,14 @@
+{
+  "name": "lstm_small_dense128",
+  "model_type": "lstm",
+  "model_params": {
+    "lstm_units": 32,
+    "dropout": 0.15,
+    "dense_units": 128
+  },
+  "training_params": {
+    "batch_size": 32,
+    "epochs": 50
+  },
+  "timestamp": "2026-02-09T01:26:10.006721"
+}

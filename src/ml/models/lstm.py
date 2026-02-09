@@ -4,10 +4,11 @@ from tensorflow.keras import layers
 
 class LSTMSequenceModel:
 
-    def __init__(self, input_shape: tuple, lstm_units: int = 128, dropout: float = 0.2):
+    def __init__(self, input_shape: tuple, lstm_units: int = 128, dropout: float = 0.2, dense_units: int = 64):
         self.input_shape = input_shape
         self.lstm_units = lstm_units
         self.dropout = dropout
+        self.dense_units = dense_units
         self.model = None
 
     def build(self) -> keras.Model:
@@ -17,8 +18,9 @@ class LSTMSequenceModel:
         x = layers.Dropout(self.dropout)(x)
         x = layers.LSTM(self.lstm_units // 2)(x)
         x = layers.Dropout(self.dropout)(x)
-        x = layers.Dense(64, activation='relu')(x)
-        x = layers.Dropout(self.dropout)(x)
+        if self.dense_units > 1:
+            x = layers.Dense(self.dense_units, activation='relu')(x)
+            x = layers.Dropout(self.dropout)(x)
         outputs = layers.Dense(1, activation='linear')(x)
         self.model = keras.Model(inputs=inputs, outputs=outputs)
         return self.model
