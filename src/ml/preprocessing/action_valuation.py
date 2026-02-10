@@ -1,4 +1,3 @@
-"""Module for calculating action values based on xG, goals, and xT."""
 from typing import Any
 
 import numpy as np
@@ -20,10 +19,6 @@ def calculate_xg_values(events: pd.DataFrame) -> pd.Series:
 
     xg_values.loc[shots.index] = shots["extra"].map(extract_xg)
     return xg_values
-
-
-# def calculate_xt_values(actions: pd.DataFrame, xt_model: ExpectedThreat) -> ndarray[Any, dtype[floating[_64Bit]]]:
-#     return np.nan_to_num(xt_model.rate(actions), nan=0.0)
 
 
 def calculate_xt_values(actions: pd.DataFrame, xt_model: ExpectedThreat) -> ndarray[Any, dtype[floating[_64Bit]]]:
