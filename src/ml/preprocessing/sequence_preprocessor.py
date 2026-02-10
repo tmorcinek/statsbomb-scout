@@ -181,9 +181,9 @@ class SequencePreprocessor:
                 else:
                     # Short possession (minimum_sequence_length <= n < sequence_length): pad with zeros
                     padded_sequence = self._pad_sequence(normalized_features)
-                    all_sequences.append(padded_sequence.reshape(1, self.sequence_length, -1))
                     labels.append(self._create_label(features))
                     sequence_windows.append(features)
+                    all_sequences.append(padded_sequence.reshape(1, self.sequence_length, -1))
             else:
                 # Validation mode: always create single sequence with padding if needed
                 sequence = self._create_simple_sequence(normalized_features)
