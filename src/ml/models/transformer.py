@@ -37,17 +37,20 @@ class AddPositionalEncoding(layers.Layer):
         return config
 
 
-class MultiHeadAttentionWithWeights(layers.Layer):
+class AttentionWeightsLayer(layers.Layer):
 
     def __init__(self, num_heads: int, key_dim: int, **kwargs):
-        super().__init__(**kwargs)
+        super(AttentionWeightsLayer, self).__init__(**kwargs)
         self.num_heads = num_heads
         self.key_dim = key_dim
-        self.mha = layers.MultiHeadAttention(
-            num_heads=num_heads,
-            key_dim=key_dim
-        )
         self.supports_masking = True
+
+    def build(self, input_shape):
+        self.mha = layers.MultiHeadAttention(
+            num_heads=self.num_heads,
+            key_dim=self.key_dim
+        )
+        super(AttentionWeightsLayer, self).build(input_shape)
 
     def call(self, inputs, mask=None):
         attn_mask = None
@@ -60,9 +63,8 @@ class MultiHeadAttentionWithWeights(layers.Layer):
             return_attention_scores=True
         )
 
-        attention_weights = tf.reduce_mean(attention_scores, axis=1)
-        attention_weights = tf.reduce_mean(attention_weights, axis=1)
-
+        attention_scores_avg = tf.reduce_mean(attention_scores, axis=1)
+        attention_weights = tf.reduce_mean(attention_scores_avg, axis=1)
         if mask is not None:
             mask_float = tf.cast(mask, dtype=attention_weights.dtype)
             attention_weights = attention_weights * mask_float
@@ -76,17 +78,17 @@ class MultiHeadAttentionWithWeights(layers.Layer):
         return mask
 
     def get_config(self):
-        config = super().get_config()
+        config = super(AttentionWeightsLayer, self).get_config()
         config.update({
             'num_heads': self.num_heads,
-            'key_dim': self.key_dim
+            'key_dim': self.key_dim,
         })
         return config
 
 
 class TransformerSequenceModel:
 
-    def __init__(self, input_shape: tuple, num_heads: int = 4, d_model: int = 128, ff_dim: int = 256, num_blocks: int = 2, dropout: float = 0.1):
+    def __init__(self, input_shape: tuple, num_heads: int = 4, d_model: int = 128, ff_dim: int = 512, num_blocks: int = 2, dropout: float = 0.1):
         if d_model % num_heads != 0:
             raise ValueError(f"d_model ({d_model}) must be divisible by num_heads ({num_heads})")
         self.input_shape = input_shape
@@ -97,22 +99,32 @@ class TransformerSequenceModel:
         self.dropout = dropout
         self.model = None
 
-    def transformer_encoder(self, inputs):
+    def transformer_encoder(self, inputs, is_last_block=False):
         key_dim = self.d_model // self.num_heads
-        attention_layer = MultiHeadAttentionWithWeights(
-            num_heads=self.num_heads,
-            key_dim=key_dim
-        )
-        attention_output, attention_weights = attention_layer(inputs)
+        if is_last_block:
+            attention_layer = AttentionWeightsLayer(
+                num_heads=self.num_heads,
+                key_dim=key_dim,
+                name='attention_weights_layer'
+            )
+            attention_output, attention_weights = attention_layer(inputs)
+        else:
+            attention_output = layers.MultiHeadAttention(
+                num_heads=self.num_heads,
+                key_dim=key_dim
+            )(inputs, inputs)
+            attention_weights = None
         attention_output = layers.Dropout(self.dropout)(attention_output)
         attention_output = layers.Add()([inputs, attention_output])
-        attention_output = layers.LayerNormalization()(attention_output)
+        attention_output = layers.LayerNormalization(epsilon=1e-6)(attention_output)
         ff_output = layers.Dense(self.ff_dim, activation='relu')(attention_output)
         ff_output = layers.Dense(self.d_model)(ff_output)
         ff_output = layers.Dropout(self.dropout)(ff_output)
         output = layers.Add()([attention_output, ff_output])
-        output = layers.LayerNormalization()(output)
-        return output, attention_weights
+        output = layers.LayerNormalization(epsilon=1e-6)(output)
+        if is_last_block:
+            return output, attention_weights
+        return output
 
     def build(self) -> keras.Model:
         inputs = layers.Input(shape=self.input_shape, name='sequence_input')
@@ -122,16 +134,17 @@ class TransformerSequenceModel:
             max_seq_len=self.input_shape[0],
             d_model=self.d_model
         )(x)
-        for _ in range(self.num_blocks - 1):
-            x, _ = self.transformer_encoder(x)
-        x, attention_weights = self.transformer_encoder(x)
+        for i in range(self.num_blocks - 1):
+            x = self.transformer_encoder(x, is_last_block=False)
+        x, attention_weights = self.transformer_encoder(x, is_last_block=True)
         x = layers.GlobalAveragePooling1D()(x)
         x = layers.Dense(64, activation='relu')(x)
         x = layers.Dropout(self.dropout)(x)
         value_output = layers.Dense(1, activation='linear', name='value')(x)
+        attention_output = layers.Lambda(lambda x: x, name='attention_weights')(attention_weights)
         self.model = keras.Model(
             inputs=inputs,
-            outputs={'value': value_output, 'attention_weights': attention_weights}
+            outputs={'value': value_output, 'attention_weights': attention_output}
         )
         return self.model
 
