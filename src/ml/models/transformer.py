@@ -43,14 +43,11 @@ class AttentionWeightsLayer(layers.Layer):
         super(AttentionWeightsLayer, self).__init__(**kwargs)
         self.num_heads = num_heads
         self.key_dim = key_dim
-        self.supports_masking = True
-
-    def build(self, input_shape):
         self.mha = layers.MultiHeadAttention(
-            num_heads=self.num_heads,
-            key_dim=self.key_dim
+            num_heads=num_heads,
+            key_dim=key_dim
         )
-        super(AttentionWeightsLayer, self).build(input_shape)
+        self.supports_masking = True
 
     def call(self, inputs, mask=None):
         attn_mask = None
@@ -63,8 +60,7 @@ class AttentionWeightsLayer(layers.Layer):
             return_attention_scores=True
         )
 
-        attention_scores_avg = tf.reduce_mean(attention_scores, axis=1)
-        attention_weights = tf.reduce_mean(attention_scores_avg, axis=1)
+        attention_weights = tf.reduce_mean(attention_scores, axis=[1, 2])
         if mask is not None:
             mask_float = tf.cast(mask, dtype=attention_weights.dtype)
             attention_weights = attention_weights * mask_float
@@ -81,14 +77,14 @@ class AttentionWeightsLayer(layers.Layer):
         config = super(AttentionWeightsLayer, self).get_config()
         config.update({
             'num_heads': self.num_heads,
-            'key_dim': self.key_dim,
+            'key_dim': self.key_dim
         })
         return config
 
 
 class TransformerSequenceModel:
 
-    def __init__(self, input_shape: tuple, num_heads: int = 4, d_model: int = 128, ff_dim: int = 512, num_blocks: int = 2, dropout: float = 0.1):
+    def __init__(self, input_shape: tuple, num_heads: int = 4, d_model: int = 128, ff_dim: int = 256, num_blocks: int = 2, dropout: float = 0.1):
         if d_model % num_heads != 0:
             raise ValueError(f"d_model ({d_model}) must be divisible by num_heads ({num_heads})")
         self.input_shape = input_shape
@@ -134,7 +130,7 @@ class TransformerSequenceModel:
             max_seq_len=self.input_shape[0],
             d_model=self.d_model
         )(x)
-        for i in range(self.num_blocks - 1):
+        for _ in range(self.num_blocks - 1):
             x = self.transformer_encoder(x, is_last_block=False)
         x, attention_weights = self.transformer_encoder(x, is_last_block=True)
         x = layers.GlobalAveragePooling1D()(x)
