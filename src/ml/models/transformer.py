@@ -37,10 +37,10 @@ class AddPositionalEncoding(layers.Layer):
         return config
 
 
-class AttentionWeightsLayer(layers.Layer):
+class MultiHeadAttentionWithWeights(layers.Layer):
 
     def __init__(self, num_heads: int, key_dim: int, **kwargs):
-        super(AttentionWeightsLayer, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.num_heads = num_heads
         self.key_dim = key_dim
         self.mha = layers.MultiHeadAttention(
@@ -74,7 +74,7 @@ class AttentionWeightsLayer(layers.Layer):
         return mask
 
     def get_config(self):
-        config = super(AttentionWeightsLayer, self).get_config()
+        config = super().get_config()
         config.update({
             'num_heads': self.num_heads,
             'key_dim': self.key_dim
@@ -95,32 +95,22 @@ class TransformerSequenceModel:
         self.dropout = dropout
         self.model = None
 
-    def transformer_encoder(self, inputs, is_last_block=False):
+    def transformer_encoder(self, inputs):
         key_dim = self.d_model // self.num_heads
-        if is_last_block:
-            attention_layer = AttentionWeightsLayer(
-                num_heads=self.num_heads,
-                key_dim=key_dim,
-                name='attention_weights_layer'
-            )
-            attention_output, attention_weights = attention_layer(inputs)
-        else:
-            attention_output = layers.MultiHeadAttention(
-                num_heads=self.num_heads,
-                key_dim=key_dim
-            )(inputs, inputs)
-            attention_weights = None
+        attention_layer = MultiHeadAttentionWithWeights(
+            num_heads=self.num_heads,
+            key_dim=key_dim
+        )
+        attention_output, attention_weights = attention_layer(inputs)
         attention_output = layers.Dropout(self.dropout)(attention_output)
         attention_output = layers.Add()([inputs, attention_output])
-        attention_output = layers.LayerNormalization(epsilon=1e-6)(attention_output)
+        attention_output = layers.LayerNormalization()(attention_output)
         ff_output = layers.Dense(self.ff_dim, activation='relu')(attention_output)
         ff_output = layers.Dense(self.d_model)(ff_output)
         ff_output = layers.Dropout(self.dropout)(ff_output)
         output = layers.Add()([attention_output, ff_output])
-        output = layers.LayerNormalization(epsilon=1e-6)(output)
-        if is_last_block:
-            return output, attention_weights
-        return output
+        output = layers.LayerNormalization()(output)
+        return output, attention_weights
 
     def build(self) -> keras.Model:
         inputs = layers.Input(shape=self.input_shape, name='sequence_input')
@@ -131,8 +121,8 @@ class TransformerSequenceModel:
             d_model=self.d_model
         )(x)
         for _ in range(self.num_blocks - 1):
-            x = self.transformer_encoder(x, is_last_block=False)
-        x, attention_weights = self.transformer_encoder(x, is_last_block=True)
+            x, _ = self.transformer_encoder(x)
+        x, attention_weights = self.transformer_encoder(x)
         x = layers.GlobalAveragePooling1D()(x)
         x = layers.Dense(64, activation='relu')(x)
         x = layers.Dropout(self.dropout)(x)
