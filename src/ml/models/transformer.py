@@ -127,7 +127,7 @@ class TransformerSequenceModel:
         x = layers.Dense(64, activation='relu')(x)
         x = layers.Dropout(self.dropout)(x)
         value_output = layers.Dense(1, activation='linear', name='value')(x)
-        attention_output = layers.Lambda(lambda x: x, name='attention_weights')(attention_weights)
+        attention_output = layers.Activation('linear', name='attention_weights')(attention_weights)
         self.model = keras.Model(
             inputs=inputs,
             outputs={'value': value_output, 'attention_weights': attention_output}
@@ -145,5 +145,8 @@ class TransformerSequenceModel:
                 'value': 1.0,
                 'attention_weights': 0.0
             },
-            metrics={'value': ['mae']}
+            metrics={
+                'value': ['mae'],
+                'attention_weights': []
+            }
         )
