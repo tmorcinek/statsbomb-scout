@@ -12,37 +12,17 @@ def split_matches(
         val_size: float = 0.2,
         random_seed: int = 42
 ) -> Tuple[List[Tuple[pd.Series, pd.DataFrame]], ...]:
-    """
-    Split matches into train, validation, and test sets.
-
-    This ensures no data leakage - sequences from the same match
-    won't appear in both training and test/validation sets.
-
-    Args:
-        matches_generator: Generator yielding (match_id, events_df) tuples
-        test_size: Proportion for test set (default: 0.1 = 10%)
-        val_size: Proportion of remaining matches for validation (default: 0.2 = 20%)
-        random_seed: Random seed for reproducibility
-
-    Returns:
-        Tuple of (train_matches, val_matches, test_matches)
-        Each is a list of (match_id, events_df) tuples
-    """
-    # Convert generator to list
     all_matches = list(matches_generator)
     n_matches = len(all_matches)
 
     print(f"Splitting {n_matches} matches...")
 
-    # Calculate split indices
     n_test = int(n_matches * test_size)
     n_val = int((n_matches - n_test) * val_size)
 
-    # Shuffle matches for random split
     random.seed(random_seed)
     random.shuffle(all_matches)
 
-    # Split
     test_matches = all_matches[:n_test]
     val_matches = all_matches[n_test:n_test + n_val]
     train_matches = all_matches[n_test + n_val:]
