@@ -128,7 +128,7 @@ def _title_with_value(possession_actions: DataFrame, predicted_value: float, att
     return title
 
 
-def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame], titles: Optional[list[str]] = None, main_title: Optional[str] = None) -> plt.Figure:
+def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame], titles: Optional[list[str]] = None, main_title: Optional[str] = None, cols: Optional[int] = None) -> plt.Figure:
     num_possessions = len(possession_actions_list)
 
     if num_possessions == 0:
@@ -137,7 +137,8 @@ def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame], title
     if titles is not None and len(titles) != num_possessions:
         raise ValueError(f"titles length ({len(titles)}) must match possession_actions_list length ({num_possessions})")
 
-    cols = math.ceil(math.sqrt(num_possessions))
+    if cols is None:
+        cols = math.ceil(math.sqrt(num_possessions))
     rows = math.ceil(num_possessions / cols)
 
     figsize = (6 * cols, 6 * rows)

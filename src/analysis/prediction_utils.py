@@ -107,7 +107,8 @@ def create_top_sequences(sequences: np.ndarray, predicted_values: np.ndarray, at
 
 def visualize_top_sequences(sequences: np.ndarray, predicted_values: np.ndarray,
                             attention_weights: Optional[np.ndarray], head: Optional[int] = None, main_title: Optional[str] = None,
-                            indices: Optional[np.ndarray] = None):
+                            indices: Optional[np.ndarray] = None,
+                            cols: Optional[int] = None):
     top_indices = indices if indices is not None else get_top_indices(predicted_values, head)
 
     top_sequences = []
@@ -123,7 +124,7 @@ def visualize_top_sequences(sequences: np.ndarray, predicted_values: np.ndarray,
         n_sequences = len(top_indices)
         main_title = f"Top {n_sequences} Sequences by Predicted Value"
 
-    fig = plot_multiple_possessions(top_sequences, titles=top_sequence_titles, main_title=main_title)
+    fig = plot_multiple_possessions(top_sequences, titles=top_sequence_titles, main_title=main_title, cols=cols)
     plt.tight_layout()
     return fig
 
