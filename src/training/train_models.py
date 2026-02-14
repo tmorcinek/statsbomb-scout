@@ -33,7 +33,7 @@ class ModelConfig:
         # Generate output directory name if not provided
         if output_dir is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self.output_dir = f"models/{model_type}_{name}_{timestamp}"
+            self.output_dir = f"generated/{model_type}_{name}_{timestamp}"
         else:
             self.output_dir = output_dir
 
@@ -122,16 +122,6 @@ class TrainModelStep(PipelineStep):
 
         Path(model_config.output_dir).mkdir(parents=True, exist_ok=True)
 
-        config_path = Path(model_config.output_dir) / "config.json"
-        with open(config_path, 'w') as f:
-            json.dump({
-                'name': model_config.name,
-                'model_type': model_config.model_type,
-                'model_params': model_config.model_params,
-                'training_params': model_config.training_params,
-                'timestamp': datetime.now().isoformat()
-            }, f, indent=2)
-
         input_shape = (data.X_train.shape[1], data.X_train.shape[2])
         model = create_model(
             model_config.model_type,
@@ -161,7 +151,8 @@ class TrainModelStep(PipelineStep):
                 'name': model_config.name,
                 'model_type': model_config.model_type,
                 'model_params': model_config.model_params,
-                'training_params': model_config.training_params
+                'training_params': model_config.training_params,
+                'timestamp': datetime.now().isoformat()
             }
         }
 
@@ -468,6 +459,85 @@ def create_transformers_config() -> List[ModelConfig]:
     ]
     return configs
 
+def generated_configs() -> List[ModelConfig]:
+    configs = [
+        # ModelConfig(
+        #     name="lstm_baseline_double_lstm_dense128",
+        #     model_type="lstm",
+        #     model_params={'lstm_units': 64, 'dropout': 0.2, 'use_second_lstm': True, 'dense_units': 128},
+        #     training_params={'batch_size': 32, 'epochs': 75}
+        # ),
+        # ModelConfig(
+        #     name="lstm_large_single_lstm_no_dense",
+        #     model_type="lstm",
+        #     model_params={'lstm_units': 128, 'dropout': 0.3, 'use_second_lstm': False, 'dense_units': 1},
+        #     training_params={'batch_size': 32, 'epochs': 100}
+        # ),
+        # ModelConfig(
+        #     name="lstm_large_double_lstm_dense",
+        #     model_type="lstm",
+        #     model_params={'lstm_units': 128, 'dropout': 0.3, 'use_second_lstm': True, 'dense_units': 64},
+        #     training_params={'batch_size': 32, 'epochs': 100}
+        # ),
+        # # Attention LSTM models
+        # ModelConfig(
+        #     name="attention_lstm_small",
+        #     model_type="attention_lstm",
+        #     model_params={'lstm_units': 32, 'dropout': 0.15},
+        #     training_params={'batch_size': 32, 'epochs': 50}
+        # ),
+        # ModelConfig(
+        #     name="attention_lstm_baseline",
+        #     model_type="attention_lstm",
+        #     model_params={'lstm_units': 64, 'dropout': 0.2},
+        #     training_params={'batch_size': 32, 'epochs': 75}
+        # ),
+        # ModelConfig(
+        #     name="attention_lstm_large",
+        #     model_type="attention_lstm",
+        #     model_params={'lstm_units': 128, 'dropout': 0.3},
+        #     training_params={'batch_size': 32, 'epochs': 100}
+        # ),
+        # Transformer models
+        # ModelConfig(
+        #     name="transformer_small",
+        #     model_type="transformer",
+        #     model_params={
+        #         'num_heads': 2,
+        #         'd_model': 64,
+        #         'ff_dim': 256,
+        #         'num_blocks': 2,
+        #         'dropout': 0.1,
+        #     },
+        #     training_params={'batch_size': 32, 'epochs': 100}
+        # ),
+        ModelConfig(
+            name="transformer_baseline",
+            model_type="transformer",
+            model_params={
+                'num_heads': 4,
+                'd_model': 128,
+                'ff_dim': 512,
+                'num_blocks': 2,
+                'dropout': 0.1,
+            },
+            training_params={'batch_size': 32, 'epochs': 100}
+        ),
+        ModelConfig(
+            name="transformer_large",
+            model_type="transformer",
+            model_params={
+                'num_heads': 8,
+                'd_model': 256,
+                'ff_dim': 1024,
+                'num_blocks': 3,
+                'dropout': 0.15,
+            },
+            training_params={'batch_size': 32, 'epochs': 150}
+        ),
+    ]
+    return configs
+
 
 def create_comparison_pipeline(
     configs: List[ModelConfig],
@@ -481,14 +551,14 @@ def create_comparison_pipeline(
     pipeline.add_step(LoadDataStep(competition_id=competition_id, season_id=season_id))
     pipeline.add_step(PreprocessDataStep())
     pipeline.add_step(BranchingPipeline(branches=model_branches))
-    pipeline.add_step(SaveResultsStep(f"models/{pipeline_name}.csv"))
+    pipeline.add_step(SaveResultsStep(f"generated/{pipeline_name}.csv"))
 
     return pipeline
 
 
 if __name__ == "__main__":
     lstm_pipeline = create_comparison_pipeline(
-        configs=create_transformers_config(),
+        configs=generated_configs(),
         pipeline_name="model_comparison_transformer",
         competition_id=55,
         season_id=282
