@@ -20,6 +20,10 @@ from src.data.data_loader import load_socceraction_data, load_socceraction_match
 def sample_game():
     return load_socceraction_match("data/statsbomb/data", 55, 282)
 
+@pytest.fixture(scope="module")
+def final_game():
+    return load_socceraction_match("data/statsbomb/data", 55, 282, 3943043)
+
 
 def test_first_match_possessions(sample_game):
     game, events = sample_game
@@ -164,3 +168,28 @@ def test_plot_multiple_goals(sample_game):
     fig = plot_multiple_possessions(possessions.values(), main_title=f"{game_summary(game)}\nPossessions with Goals")
     fig.savefig('data/test/visualization_goals.png', dpi=300, bbox_inches='tight')
     # plt.show()
+
+def test_plot_possessions_with_ids(final_game):
+    game, events = final_game
+    ids = [
+        21,
+        75,
+        81,
+        83,
+        # brakuje, która jest częścią 92
+        92,
+        100,
+        105,
+        115,
+        117,
+        129,
+        136,
+        138,
+    ]
+    possessions = {k: v for k, v in extract_possessions(game, events).items() if k in ids}
+
+    assert len(possessions) == 12
+
+    fig = plot_multiple_possessions(possessions.values(), main_title=f"{game_summary(game)}\nPossessions from highlightes")
+    fig.savefig('data/test/visualization_highlights.png', dpi=300, bbox_inches='tight')
+    plt.show()
