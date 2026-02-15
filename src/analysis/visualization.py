@@ -162,5 +162,6 @@ def plot_multiple_possessions(possession_actions_list: list[pd.DataFrame], title
     if main_title is not None:
         fig.suptitle(main_title, fontsize=14, fontweight='bold', y=0.99)
 
-    plt.tight_layout()
+    fig.subplots_adjust()
+
     return fig
