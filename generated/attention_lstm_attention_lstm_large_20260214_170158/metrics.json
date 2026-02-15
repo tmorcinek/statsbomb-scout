@@ -1,0 +1,25 @@
+{
+  "validation": {
+    "loss": 0.0002891922486014664,
+    "mae": 0.0002891922486014664,
+    "rmse": 0.017005653426472228
+  },
+  "test": {
+    "loss": 0.0007190762553364038,
+    "mae": 0.0007166166324168444,
+    "rmse": 0.026815598658003974
+  },
+  "config": {
+    "name": "attention_lstm_large",
+    "model_type": "attention_lstm",
+    "model_params": {
+      "lstm_units": 128,
+      "dropout": 0.3
+    },
+    "training_params": {
+      "batch_size": 32,
+      "epochs": 100
+    },
+    "timestamp": "2026-02-14T18:34:13.094482"
+  }
+}

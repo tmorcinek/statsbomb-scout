@@ -1,0 +1,58 @@
+{
+  "attention_lstm_attention_lstm_baseline_20260214_170158": {
+    "model_name": "attention_lstm_attention_lstm_baseline_20260214_170158",
+    "model_type": "attention_lstm",
+    "model_dir": "generated/attention_lstm_attention_lstm_baseline_20260214_170158",
+    "match_id": 3943043,
+    "num_sequences": 124,
+    "sum_predicted_values": 8.02402114868164,
+    "has_attention_weights": true,
+    "top_n": 50,
+    "top_k": 8,
+    "csv_path": "generated/attention_lstm_attention_lstm_baseline_20260214_170158/top_possessions_match_3943043.csv",
+    "image_path": "generated/attention_lstm_attention_lstm_baseline_20260214_170158/top_possessions_match_3943043.png",
+    "status": "success"
+  },
+  "attention_lstm_attention_lstm_large_20260214_170158": {
+    "model_name": "attention_lstm_attention_lstm_large_20260214_170158",
+    "model_type": "attention_lstm",
+    "model_dir": "generated/attention_lstm_attention_lstm_large_20260214_170158",
+    "match_id": 3943043,
+    "num_sequences": 124,
+    "sum_predicted_values": 8.10757827758789,
+    "has_attention_weights": true,
+    "top_n": 50,
+    "top_k": 8,
+    "csv_path": "generated/attention_lstm_attention_lstm_large_20260214_170158/top_possessions_match_3943043.csv",
+    "image_path": "generated/attention_lstm_attention_lstm_large_20260214_170158/top_possessions_match_3943043.png",
+    "status": "success"
+  },
+  "transformer_transformer_baseline_20260214_170158": {
+    "model_name": "transformer_transformer_baseline_20260214_170158",
+    "model_type": "transformer",
+    "model_dir": "generated/transformer_transformer_baseline_20260214_170158",
+    "match_id": 3943043,
+    "num_sequences": 124,
+    "sum_predicted_values": 8.482438087463379,
+    "has_attention_weights": true,
+    "top_n": 50,
+    "top_k": 8,
+    "csv_path": "generated/transformer_transformer_baseline_20260214_170158/top_possessions_match_3943043.csv",
+    "image_path": "generated/transformer_transformer_baseline_20260214_170158/top_possessions_match_3943043.png",
+    "status": "success"
+  },
+  "transformer_transformer_small_20260214_170158": {
+    "model_name": "transformer_transformer_small_20260214_170158",
+    "model_type": "transformer",
+    "model_dir": "generated/transformer_transformer_small_20260214_170158",
+    "match_id": 3943043,
+    "num_sequences": 124,
+    "sum_predicted_values": 8.52537727355957,
+    "has_attention_weights": true,
+    "top_n": 50,
+    "top_k": 8,
+    "csv_path": "generated/transformer_transformer_small_20260214_170158/top_possessions_match_3943043.csv",
+    "image_path": "generated/transformer_transformer_small_20260214_170158/top_possessions_match_3943043.png",
+    "status": "success"
+  }
+}

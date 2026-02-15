@@ -1,0 +1,28 @@
+{
+  "validation": {
+    "loss": 0.00025315876700915396,
+    "mae": 0.00025315876700915396,
+    "rmse": 0.015910965364694076
+  },
+  "test": {
+    "loss": 0.000839316169731319,
+    "mae": 0.0008365011890418828,
+    "rmse": 0.02897095334872621
+  },
+  "config": {
+    "name": "transformer_small",
+    "model_type": "transformer",
+    "model_params": {
+      "num_heads": 2,
+      "d_model": 64,
+      "ff_dim": 256,
+      "num_blocks": 2,
+      "dropout": 0.1
+    },
+    "training_params": {
+      "batch_size": 32,
+      "epochs": 100
+    },
+    "timestamp": "2026-02-14T19:16:42.446690"
+  }
+}

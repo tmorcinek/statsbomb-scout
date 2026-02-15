@@ -81,7 +81,7 @@ class LoadDataStep(PipelineStep):
 
     def process(self, data: Any = None) -> tuple:
         data = load_statsbomb_socceraction_data(self.data_dir, self.competition_id, self.season_id)
-        return split_matches(data)
+        return split_matches(data, random_seed=18)
 
 
 class PreprocessDataStep(PipelineStep):
@@ -461,56 +461,32 @@ def create_transformers_config() -> List[ModelConfig]:
 
 def generated_configs() -> List[ModelConfig]:
     configs = [
-        # ModelConfig(
-        #     name="lstm_baseline_double_lstm_dense128",
-        #     model_type="lstm",
-        #     model_params={'lstm_units': 64, 'dropout': 0.2, 'use_second_lstm': True, 'dense_units': 128},
-        #     training_params={'batch_size': 32, 'epochs': 75}
-        # ),
-        # ModelConfig(
-        #     name="lstm_large_single_lstm_no_dense",
-        #     model_type="lstm",
-        #     model_params={'lstm_units': 128, 'dropout': 0.3, 'use_second_lstm': False, 'dense_units': 1},
-        #     training_params={'batch_size': 32, 'epochs': 100}
-        # ),
-        # ModelConfig(
-        #     name="lstm_large_double_lstm_dense",
-        #     model_type="lstm",
-        #     model_params={'lstm_units': 128, 'dropout': 0.3, 'use_second_lstm': True, 'dense_units': 64},
-        #     training_params={'batch_size': 32, 'epochs': 100}
-        # ),
-        # # Attention LSTM models
-        # ModelConfig(
-        #     name="attention_lstm_small",
-        #     model_type="attention_lstm",
-        #     model_params={'lstm_units': 32, 'dropout': 0.15},
-        #     training_params={'batch_size': 32, 'epochs': 50}
-        # ),
-        # ModelConfig(
-        #     name="attention_lstm_baseline",
-        #     model_type="attention_lstm",
-        #     model_params={'lstm_units': 64, 'dropout': 0.2},
-        #     training_params={'batch_size': 32, 'epochs': 75}
-        # ),
-        # ModelConfig(
-        #     name="attention_lstm_large",
-        #     model_type="attention_lstm",
-        #     model_params={'lstm_units': 128, 'dropout': 0.3},
-        #     training_params={'batch_size': 32, 'epochs': 100}
-        # ),
+        # Attention LSTM models
+        ModelConfig(
+            name="attention_lstm_baseline",
+            model_type="attention_lstm",
+            model_params={'lstm_units': 64, 'dropout': 0.2},
+            training_params={'batch_size': 32, 'epochs': 75}
+        ),
+        ModelConfig(
+            name="attention_lstm_large",
+            model_type="attention_lstm",
+            model_params={'lstm_units': 128, 'dropout': 0.3},
+            training_params={'batch_size': 32, 'epochs': 100}
+        ),
         # Transformer models
-        # ModelConfig(
-        #     name="transformer_small",
-        #     model_type="transformer",
-        #     model_params={
-        #         'num_heads': 2,
-        #         'd_model': 64,
-        #         'ff_dim': 256,
-        #         'num_blocks': 2,
-        #         'dropout': 0.1,
-        #     },
-        #     training_params={'batch_size': 32, 'epochs': 100}
-        # ),
+        ModelConfig(
+            name="transformer_small",
+            model_type="transformer",
+            model_params={
+                'num_heads': 2,
+                'd_model': 64,
+                'ff_dim': 256,
+                'num_blocks': 2,
+                'dropout': 0.1,
+            },
+            training_params={'batch_size': 32, 'epochs': 100}
+        ),
         ModelConfig(
             name="transformer_baseline",
             model_type="transformer",
@@ -522,18 +498,6 @@ def generated_configs() -> List[ModelConfig]:
                 'dropout': 0.1,
             },
             training_params={'batch_size': 32, 'epochs': 100}
-        ),
-        ModelConfig(
-            name="transformer_large",
-            model_type="transformer",
-            model_params={
-                'num_heads': 8,
-                'd_model': 256,
-                'ff_dim': 1024,
-                'num_blocks': 3,
-                'dropout': 0.15,
-            },
-            training_params={'batch_size': 32, 'epochs': 150}
         ),
     ]
     return configs
