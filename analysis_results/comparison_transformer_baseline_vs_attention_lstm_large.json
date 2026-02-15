@@ -1,0 +1,97 @@
+{
+  "model1_name": "transformer_baseline",
+  "model2_name": "attention_lstm_large",
+  "total_compared": 124,
+  "top10_agreement": 9,
+  "correlation": 0.7667118374764683,
+  "mae": 0.020102557540322575,
+  "rmse": 0.06939858638016425,
+  "model1_higher_count": 73,
+  "model2_higher_count": 51,
+  "same_count": 0,
+  "mean_diff": 0.0030230628467741933,
+  "std_diff": 0.06961398125161393,
+  "biggest_disagreements": [
+    {
+      "possession_id": 138,
+      "value_model1": 0.96591675,
+      "value_model2": 0.25811046,
+      "value_diff": 0.70780629,
+      "team_name": "England",
+      "outcome": "Shot"
+    },
+    {
+      "possession_id": 109,
+      "value_model1": 0.10382808,
+      "value_model2": 0.23929824,
+      "value_diff": -0.13547016,
+      "team_name": "Spain",
+      "outcome": "Pass"
+    },
+    {
+      "possession_id": 137,
+      "value_model1": 0.14353988,
+      "value_model2": 0.27407882,
+      "value_diff": -0.13053894,
+      "team_name": "England",
+      "outcome": "Pass"
+    },
+    {
+      "possession_id": 102,
+      "value_model1": 0.23137648,
+      "value_model2": 0.1116439,
+      "value_diff": 0.11973257999999999,
+      "team_name": "England",
+      "outcome": "Pass"
+    },
+    {
+      "possession_id": 40,
+      "value_model1": 0.047877476,
+      "value_model2": 0.13651057,
+      "value_diff": -0.088633094,
+      "team_name": "England",
+      "outcome": "Pass"
+    },
+    {
+      "possession_id": 124,
+      "value_model1": 0.04876046,
+      "value_model2": 0.124426015,
+      "value_diff": -0.075665555,
+      "team_name": "Spain",
+      "outcome": "Pass"
+    },
+    {
+      "possession_id": 111,
+      "value_model1": 0.030646965,
+      "value_model2": 0.09147905,
+      "value_diff": -0.06083208500000001,
+      "team_name": "England",
+      "outcome": "Shot"
+    },
+    {
+      "possession_id": 38,
+      "value_model1": 0.050569132,
+      "value_model2": 0.10000565,
+      "value_diff": -0.049436518,
+      "team_name": "Spain",
+      "outcome": "Pass"
+    },
+    {
+      "possession_id": 83,
+      "value_model1": 0.102584906,
+      "value_model2": 0.15117073,
+      "value_diff": -0.048585824,
+      "team_name": "Spain",
+      "outcome": "Shot"
+    },
+    {
+      "possession_id": 142,
+      "value_model1": 0.07008977,
+      "value_model2": 0.03028059,
+      "value_diff": 0.03980918,
+      "team_name": "England",
+      "outcome": "Foul"
+    }
+  ],
+  "visualization_path": "analysis_results/comparison_transformer_baseline_vs_attention_lstm_large.png"
+}

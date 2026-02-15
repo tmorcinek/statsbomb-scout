@@ -190,17 +190,17 @@ def create_analysis_pipeline(
 
 if __name__ == "__main__":
     models = [
-        ModelConfig(model_type='attention_lstm', model_dir='generated/attention_lstm_attention_lstm_baseline_20260214_170158'),
+        # ModelConfig(model_type='attention_lstm', model_dir='generated/attention_lstm_attention_lstm_baseline_20260214_170158'),
+        # ModelConfig(model_type='transformer', model_dir='generated/transformer_transformer_small_20260214_170158'),
         ModelConfig(model_type='attention_lstm', model_dir='generated/attention_lstm_attention_lstm_large_20260214_170158'),
         ModelConfig(model_type='transformer', model_dir='generated/transformer_transformer_baseline_20260214_170158'),
-        ModelConfig(model_type='transformer', model_dir='generated/transformer_transformer_small_20260214_170158'),
     ]
 
     pipeline = create_analysis_pipeline(
         match_id=3943043,
         model_configs=models,
-        top_n=50,
-        top_k=8,
+        top_n=None,
+        top_k=20,
         cols=4,
         mode=PreprocessingMode.VALIDATION,
     )
