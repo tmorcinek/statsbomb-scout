@@ -172,6 +172,12 @@ class SequencePreprocessor:
         np.ndarray, np.ndarray, np.ndarray]:
         print(f"→Processing match {match_id}: {len(events_df)} events (mode: {mode.value})")
 
+        sequence_creators = {
+            PreprocessingMode.TRAINING: self._create_sequences,
+            PreprocessingMode.VALIDATION: self._create_validation_sequences,
+            PreprocessingMode.PLAYER_EVALUATION: self._create_evaluation_sequences
+        }
+
         all_sequences = []
         labels = []
         sequence_windows = []
@@ -180,27 +186,14 @@ class SequencePreprocessor:
             features = self._update_action(actions_df)
             normalized_features = self._normalize_features(features)
 
-            if mode == PreprocessingMode.TRAINING:
-                sequences = self._create_sequences(normalized_features)
-                for seq, end_idx in sequences:
-                    window_actions = features.iloc[:end_idx].tail(self.sequence_length)
-                    labels.append(self._create_label(window_actions))
-                    sequence_windows.append(window_actions)
-                all_sequences.append(np.array([seq for seq, _ in sequences], dtype=np.float32))
-            elif mode == PreprocessingMode.VALIDATION:
-                sequences = self._create_validation_sequences(normalized_features)
-                for seq, end_idx in sequences:
-                    window_actions = features.iloc[:end_idx].tail(self.sequence_length)
-                    labels.append(self._create_label(window_actions))
-                    sequence_windows.append(window_actions)
-                all_sequences.append(np.array([seq for seq, _ in sequences], dtype=np.float32))
-            else:
-                sequences = self._create_evaluation_sequences(normalized_features)
-                for seq, end_idx in sequences:
-                    window_actions = features.iloc[:end_idx].tail(self.sequence_length)
-                    labels.append(self._create_label(window_actions))
-                    sequence_windows.append(window_actions)
-                all_sequences.append(np.array([seq for seq, _ in sequences], dtype=np.float32))
+            sequences = sequence_creators[mode](normalized_features)
+
+            for seq, end_idx in sequences:
+                window_actions = features.iloc[:end_idx].tail(self.sequence_length)
+                labels.append(self._create_label(window_actions))
+                sequence_windows.append(window_actions)
+
+            all_sequences.append(np.array([seq for seq, _ in sequences], dtype=np.float32))
 
         X = np.concatenate(all_sequences)
         y = np.array(labels)
