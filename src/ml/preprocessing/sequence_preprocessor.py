@@ -189,7 +189,7 @@ class SequencePreprocessor:
             else:
                 sequences = self._create_evaluation_sequences(normalized_features)
                 for seq, end_idx in sequences:
-                    window_actions = features.iloc[:end_idx]
+                    window_actions = features.iloc[:end_idx].tail(self.sequence_length)
                     labels.append(self._create_label(window_actions))
                     sequence_windows.append(window_actions)
                 all_sequences.append(np.array([seq for seq, _ in sequences], dtype=np.float32))

@@ -183,9 +183,15 @@ def test_long_possession(preprocessor, actions, sample_game):
 
     X, y, p = preprocessor.process_match(match_id, match, possession_events, mode=PreprocessingMode.PLAYER_EVALUATION)
 
+    assert p[0].shape == (6, 31), "Sequence shape does not match!"
+    assert p[1].shape == (6, 31), "Sequence shape does not match!"
+    assert p[2].shape == (6, 31), "Sequence shape does not match!"
+    assert p[3].shape == (6, 31), "Sequence shape does not match!"
+    assert p[4].shape == (6, 31), "Sequence shape does not match!"
+
     assert X.shape == (5, 6, 46), "X shape does not match!"
     assert y.shape == (5,), "y shape does not match!"
-    assert p.shape == (5,), "p shape does not match!"
+    assert p.shape[0] == 5, "p shape does not match!"
 
 
 def test_create_label(preprocessor, sample_updated_action):
@@ -290,6 +296,16 @@ def test_process_match(sample_game, preprocessor):
     assert all(isinstance(seq, pd.DataFrame) for seq in p), "All sequences should be DataFrames"
     assert all(len(seq) <= SEQUENCE_LENGTH for seq in p), f"All sequences should have length <= {SEQUENCE_LENGTH}"
     assert all(len(seq) >= MINIMUM_SEQUENCE_LENGTH for seq in p), f"All sequences should have length >= {MINIMUM_SEQUENCE_LENGTH}"
+
+def test_process_match_player_evaluation(sample_game, preprocessor):
+    match, events = sample_game
+    match_id = match.get('game_id', match.name)
+
+    X, y, p = preprocessor.process_match(match_id, match, events, mode=PreprocessingMode.PLAYER_EVALUATION)
+
+    assert X.shape == (362, 6, 46), "X shape does not match!"
+    assert y.shape == (362,), "y shape does not match!"
+    assert p.shape == (362,), "p shape does not match!"
 
 def test_process_match_number_of_possessions(sample_game, preprocessor):
     match, events = sample_game
