@@ -121,6 +121,10 @@ class SequencePreprocessor:
             bodypart_onehot
         ], axis=1).astype(np.float32)
 
+    def _mask_opposite_actions(self, normalized_features: np.ndarray, features_df: pd.DataFrame) -> np.ndarray:
+        normalized_features[(features_df['opposite_action'].values == 1)] = 0.0
+        return normalized_features
+
     def _pad_sequence(self, features: np.ndarray) -> np.ndarray:
         n_actions, n_features = features.shape
 
@@ -183,6 +187,9 @@ class SequencePreprocessor:
         for pid, actions_df in self._extract_actions(match, events_df).items():
             features = self._update_action(actions_df)
             normalized_features = self._normalize_features(features)
+
+            if mode == PreprocessingMode.PLAYER_EVALUATION:
+                normalized_features = self._mask_opposite_actions(normalized_features, features)
 
             sequences = sequence_creators[mode](normalized_features)
 
