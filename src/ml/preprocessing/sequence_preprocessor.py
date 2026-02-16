@@ -135,8 +135,18 @@ class SequencePreprocessor:
             padded[:n_actions] = features  # Copy actual data at the beginning
             return padded
 
-    def _create_sequences(self, features: np.ndarray) -> np.ndarray:
-        return np.lib.stride_tricks.sliding_window_view(features, (self.sequence_length, features.shape[1])).squeeze(1)
+    def _create_sequences(self, features: np.ndarray) -> list[tuple[np.ndarray, int]]:
+        n_actions = len(features)
+
+        if n_actions < self.sequence_length:
+            return [(self._pad_sequence(features), n_actions)]
+
+        sequences = []
+        for i in range(n_actions - self.sequence_length + 1):
+            end_idx = i + self.sequence_length
+            sequences.append((features[i:end_idx], end_idx))
+
+        return sequences
 
     def _create_evaluation_sequences(self, features: np.ndarray) -> list[tuple[np.ndarray, int]]:
         n_actions = len(features)
@@ -165,21 +175,14 @@ class SequencePreprocessor:
         for pid, actions_df in self._extract_actions(match, events_df).items():
             features = self._update_action(actions_df)
             normalized_features = self._normalize_features(features)
-            n_actions = len(normalized_features)
 
             if mode == PreprocessingMode.TRAINING:
-                if n_actions >= self.sequence_length:
-                    sequences = self._create_sequences(normalized_features)
-                    for i, seq in enumerate(sequences):
-                        window_actions = features.iloc[i:i + self.sequence_length]
-                        labels.append(self._create_label(window_actions))
-                        sequence_windows.append(window_actions)
-                    all_sequences.append(sequences)
-                else:
-                    padded_sequence = self._pad_sequence(normalized_features)
-                    labels.append(self._create_label(features))
-                    sequence_windows.append(features)
-                    all_sequences.append(padded_sequence.reshape(1, self.sequence_length, -1))
+                sequences = self._create_sequences(normalized_features)
+                for seq, end_idx in sequences:
+                    window_actions = features.iloc[:end_idx].tail(self.sequence_length)
+                    labels.append(self._create_label(window_actions))
+                    sequence_windows.append(window_actions)
+                all_sequences.append(np.array([seq for seq, _ in sequences], dtype=np.float32))
             elif mode == PreprocessingMode.VALIDATION:
                 sequence = self._pad_sequence(normalized_features)
                 window_actions = features.tail(self.sequence_length)
