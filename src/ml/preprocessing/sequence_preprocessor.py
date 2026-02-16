@@ -136,21 +136,20 @@ class SequencePreprocessor:
             return padded
 
     def _create_sequences(self, features: np.ndarray) -> np.ndarray:
-        """Create sliding window sequences (only for long possessions)."""
         return np.lib.stride_tricks.sliding_window_view(features, (self.sequence_length, features.shape[1])).squeeze(1)
 
-    def _create_simple_sequences(self, features: np.ndarray) -> np.ndarray:
+    def _create_evaluation_sequences(self, features: np.ndarray) -> list[tuple[np.ndarray, int]]:
         n_actions = len(features)
         sequences = []
 
         while n_actions >= self.sequence_length:
-            sequences.append(features[n_actions - self.sequence_length:n_actions])
+            sequences.append((features[n_actions - self.sequence_length:n_actions], n_actions))
             n_actions -= self.sequence_length
 
         if n_actions >= self.minimum_sequence_length:
-            sequences.append(self._pad_sequence(features[:n_actions]))
+            sequences.append((self._pad_sequence(features[:n_actions]), n_actions))
 
-        return np.array(sequences, dtype=np.float32)
+        return sequences
 
     def _create_label(self, actions_df: pd.DataFrame) -> float:
         return get_actions_value(actions_df)
@@ -188,17 +187,12 @@ class SequencePreprocessor:
                 sequence_windows.append(window_actions)
                 all_sequences.append(sequence.reshape(1, self.sequence_length, -1))
             else:
-                sequences = self._create_simple_sequences(normalized_features)
-                remaining = n_actions
-                for i, seq in enumerate(sequences):
-                    if remaining >= self.sequence_length:
-                        window_actions = features.iloc[remaining - self.sequence_length:remaining]
-                        remaining -= self.sequence_length
-                    else:
-                        window_actions = features.iloc[:remaining]
+                sequences = self._create_evaluation_sequences(normalized_features)
+                for seq, end_idx in sequences:
+                    window_actions = features.iloc[:end_idx]
                     labels.append(self._create_label(window_actions))
                     sequence_windows.append(window_actions)
-                all_sequences.append(sequences)
+                all_sequences.append(np.array([seq for seq, _ in sequences], dtype=np.float32))
 
         X = np.concatenate(all_sequences)
         y = np.array(labels)

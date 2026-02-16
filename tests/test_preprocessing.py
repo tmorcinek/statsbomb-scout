@@ -160,10 +160,32 @@ def test_normalize_features_goal(preprocessor, actions):
 def test_create_simple_sequence(preprocessor, sample_normalized_features):
     assert sample_normalized_features.shape == (7, 46), "Normalized features shape does not match!"
 
-    sequences = preprocessor._create_simple_sequences(sample_normalized_features)
-    assert sequences.shape == (1, 6, 46), "Sequences shape does not match!"
+    sequences_ranges = preprocessor._create_evaluation_sequences(sample_normalized_features)
 
-    assert np.allclose(sample_normalized_features[-6:], sequences[0]), "Normalized features do not match expected values!"
+    assert len(sequences_ranges) == 1, "Number of sequences does not match!"
+
+    sequence_1, _ = sequences_ranges[0]
+    assert sequence_1.shape == (6, 46), "Sequences shape does not match!"
+
+    assert np.allclose(sample_normalized_features[-6:], sequence_1), "Normalized features do not match expected values!"
+
+
+def test_long_possession(preprocessor, actions, sample_game):
+    long_possession = actions[109]
+    assert len(long_possession) == 32, "Number of actions in penalty possession does not match!"
+
+    match, events = sample_game
+    match_id = match.get('game_id', match.name)
+
+    possession_events = events[events['possession'] == 109]
+
+    assert len(possession_events) == 58 , "Number of events in possession does not match!"
+
+    X, y, p = preprocessor.process_match(match_id, match, possession_events, mode=PreprocessingMode.PLAYER_EVALUATION)
+
+    assert X.shape == (5, 6, 46), "X shape does not match!"
+    assert y.shape == (5,), "y shape does not match!"
+    assert p.shape == (5,), "p shape does not match!"
 
 
 def test_create_label(preprocessor, sample_updated_action):
