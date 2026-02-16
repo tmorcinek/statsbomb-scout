@@ -148,6 +148,10 @@ class SequencePreprocessor:
 
         return sequences
 
+    def _create_validation_sequences(self, features: np.ndarray) -> list[tuple[np.ndarray, int]]:
+        n_actions = len(features)
+        return [(self._pad_sequence(features), n_actions)]
+
     def _create_evaluation_sequences(self, features: np.ndarray) -> list[tuple[np.ndarray, int]]:
         n_actions = len(features)
         sequences = []
@@ -184,11 +188,12 @@ class SequencePreprocessor:
                     sequence_windows.append(window_actions)
                 all_sequences.append(np.array([seq for seq, _ in sequences], dtype=np.float32))
             elif mode == PreprocessingMode.VALIDATION:
-                sequence = self._pad_sequence(normalized_features)
-                window_actions = features.tail(self.sequence_length)
-                labels.append(self._create_label(window_actions))
-                sequence_windows.append(window_actions)
-                all_sequences.append(sequence.reshape(1, self.sequence_length, -1))
+                sequences = self._create_validation_sequences(normalized_features)
+                for seq, end_idx in sequences:
+                    window_actions = features.iloc[:end_idx].tail(self.sequence_length)
+                    labels.append(self._create_label(window_actions))
+                    sequence_windows.append(window_actions)
+                all_sequences.append(np.array([seq for seq, _ in sequences], dtype=np.float32))
             else:
                 sequences = self._create_evaluation_sequences(normalized_features)
                 for seq, end_idx in sequences:
