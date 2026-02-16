@@ -20,6 +20,7 @@ pd.set_option('future.no_silent_downcasting', True)
 class PreprocessingMode(Enum):
     TRAINING = "training"
     VALIDATION = "validation"
+    PLAYER_EVALUATION = "player_evaluation"
 
 
 class SequencePreprocessor:
@@ -123,17 +124,6 @@ class SequencePreprocessor:
         ], axis=1).astype(np.float32)
 
     def _pad_sequence(self, features: np.ndarray) -> np.ndarray:
-        """
-        Pad sequence with zeros (0.0) if shorter than sequence_length.
-
-        Args:
-            features: Normalized features array of shape (n_actions, n_features)
-
-        Returns:
-            Padded array of shape (sequence_length, n_features)
-            - If len >= sequence_length: returns last sequence_length actions
-            - If len < sequence_length: pads with zeros at the end
-        """
         n_actions, n_features = features.shape
 
         if n_actions >= self.sequence_length:
@@ -149,9 +139,18 @@ class SequencePreprocessor:
         """Create sliding window sequences (only for long possessions)."""
         return np.lib.stride_tricks.sliding_window_view(features, (self.sequence_length, features.shape[1])).squeeze(1)
 
-    def _create_simple_sequence(self, features: np.ndarray) -> np.ndarray:
-        """Create single sequence with padding if needed."""
-        return self._pad_sequence(features).reshape(1, self.sequence_length, -1)
+    def _create_simple_sequences(self, features: np.ndarray) -> np.ndarray:
+        n_actions = len(features)
+        sequences = []
+
+        while n_actions >= self.sequence_length:
+            sequences.append(features[n_actions - self.sequence_length:n_actions])
+            n_actions -= self.sequence_length
+
+        if n_actions >= self.minimum_sequence_length:
+            sequences.append(self._pad_sequence(features[:n_actions]))
+
+        return np.array(sequences, dtype=np.float32)
 
     def _create_label(self, actions_df: pd.DataFrame) -> float:
         return get_actions_value(actions_df)
@@ -171,7 +170,6 @@ class SequencePreprocessor:
 
             if mode == PreprocessingMode.TRAINING:
                 if n_actions >= self.sequence_length:
-                    # Long possession: create sliding windows
                     sequences = self._create_sequences(normalized_features)
                     for i, seq in enumerate(sequences):
                         window_actions = features.iloc[i:i + self.sequence_length]
@@ -179,19 +177,28 @@ class SequencePreprocessor:
                         sequence_windows.append(window_actions)
                     all_sequences.append(sequences)
                 else:
-                    # Short possession (minimum_sequence_length <= n < sequence_length): pad with zeros
                     padded_sequence = self._pad_sequence(normalized_features)
                     labels.append(self._create_label(features))
                     sequence_windows.append(features)
                     all_sequences.append(padded_sequence.reshape(1, self.sequence_length, -1))
-            else:
-                # Validation mode: always create single sequence with padding if needed
-                sequence = self._create_simple_sequence(normalized_features)
-                window_actions = features if n_actions < self.sequence_length else features.tail(self.sequence_length)
-                label = self._create_label(window_actions)
-                all_sequences.append(sequence)
-                labels.append(label)
+            elif mode == PreprocessingMode.VALIDATION:
+                sequence = self._pad_sequence(normalized_features)
+                window_actions = features.tail(self.sequence_length)
+                labels.append(self._create_label(window_actions))
                 sequence_windows.append(window_actions)
+                all_sequences.append(sequence.reshape(1, self.sequence_length, -1))
+            else:
+                sequences = self._create_simple_sequences(normalized_features)
+                remaining = n_actions
+                for i, seq in enumerate(sequences):
+                    if remaining >= self.sequence_length:
+                        window_actions = features.iloc[remaining - self.sequence_length:remaining]
+                        remaining -= self.sequence_length
+                    else:
+                        window_actions = features.iloc[:remaining]
+                    labels.append(self._create_label(window_actions))
+                    sequence_windows.append(window_actions)
+                all_sequences.append(sequences)
 
         X = np.concatenate(all_sequences)
         y = np.array(labels)

@@ -160,10 +160,10 @@ def test_normalize_features_goal(preprocessor, actions):
 def test_create_simple_sequence(preprocessor, sample_normalized_features):
     assert sample_normalized_features.shape == (7, 46), "Normalized features shape does not match!"
 
-    sequence = preprocessor._create_simple_sequence(sample_normalized_features)
-    assert sequence.shape == (1, 6, 46), "Normalized features shape does not match!"
+    sequences = preprocessor._create_simple_sequences(sample_normalized_features)
+    assert sequences.shape == (1, 6, 46), "Sequences shape does not match!"
 
-    assert np.allclose(sample_normalized_features[-6:], sequence[0]), "Normalized features do not match expected values!"
+    assert np.allclose(sample_normalized_features[-6:], sequences[0]), "Normalized features do not match expected values!"
 
 
 def test_create_label(preprocessor, sample_updated_action):
@@ -250,6 +250,10 @@ def test_process_match(sample_game, preprocessor):
 
     X, y, p = preprocessor.process_match(match_id, match, events, mode=PreprocessingMode.VALIDATION)
 
+    assert X.shape == (97, 6, 46), "X shape does not match!"
+    assert y.shape == (97,), "y shape does not match!"
+    assert p.shape == (97,), "p shape does not match!"
+
     expected_normalized_features_df = pd.read_csv('data/test/normalized_features_df.csv').tail(SEQUENCE_LENGTH)
     assert np.allclose(expected_normalized_features_df.values, X[0]), "Normalized features do not match expected values!"
 
@@ -260,10 +264,6 @@ def test_process_match(sample_game, preprocessor):
     assert y[8] == 0.04893475, "Y[8] value does not match!"
     assert y[12] == 0.01248344, "Y[12] value does not match!"
     assert y[25] == 0.01870347, "Y[27] value does not match!"
-
-    assert X.shape == (97, 6, 46), "X shape does not match!"
-    assert y.shape == (97,), "y shape does not match!"
-    assert p.shape == (97,), "p shape does not match!"
 
     assert all(isinstance(seq, pd.DataFrame) for seq in p), "All sequences should be DataFrames"
     assert all(len(seq) <= SEQUENCE_LENGTH for seq in p), f"All sequences should have length <= {SEQUENCE_LENGTH}"
@@ -287,6 +287,17 @@ def test_process_matches(sample_game, preprocessor):
     assert y.shape == (97,), "y shape does not match!"
     assert p.shape == (97,), "p shape does not match!"
     assert m.shape == (97,), "m shape does not match!"
+
+    assert np.all(m == 3942819), "Match IDs in m do not match!"
+
+
+def test_process_matches_training(sample_game, preprocessor):
+    matches = [sample_game]
+    X, y, p, m = preprocessor.process_matches(matches, mode=PreprocessingMode.TRAINING)
+    assert X.shape == (1657, 6, 46), "X shape does not match!"
+    assert y.shape == (1657,), "y shape does not match!"
+    assert p.shape == (1657,), "p shape does not match!"
+    assert m.shape == (1657,), "m shape does not match!"
 
     assert np.all(m == 3942819), "Match IDs in m do not match!"
 
