@@ -1,0 +1,22 @@
+{
+  "attention_lstm_attention_lstm_large_20260214_170158": {
+    "model_name": "attention_lstm_attention_lstm_large_20260214_170158",
+    "model_type": "attention_lstm",
+    "model_dir": "generated/attention_lstm_attention_lstm_large_20260214_170158",
+    "match_id": 3943043,
+    "num_sequences": 264,
+    "num_players": 27,
+    "csv_path": "generated/attention_lstm_attention_lstm_large_20260214_170158/player_contributions_match_3943043.csv",
+    "status": "success"
+  },
+  "transformer_transformer_baseline_20260214_170158": {
+    "model_name": "transformer_transformer_baseline_20260214_170158",
+    "model_type": "transformer",
+    "model_dir": "generated/transformer_transformer_baseline_20260214_170158",
+    "match_id": 3943043,
+    "num_sequences": 264,
+    "num_players": 27,
+    "csv_path": "generated/transformer_transformer_baseline_20260214_170158/player_contributions_match_3943043.csv",
+    "status": "success"
+  }
+}
