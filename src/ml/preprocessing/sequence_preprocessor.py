@@ -24,13 +24,11 @@ class PreprocessingMode(Enum):
 
 
 class SequencePreprocessor:
-    """Preprocesses event data into fixed-length sequences with features."""
 
     def __init__(self, sequence_length: int, minimum_sequence_length: int, xt_model: ExpectedThreat | None = None):
         self.sequence_length = sequence_length
         self.minimum_sequence_length = minimum_sequence_length
         self.xt_model = xt_model or get_default_xt_model()
-        self.action_type_mapping = {}
 
     def _extract_actions(self, game: pd.Series, events_df: pd.DataFrame) -> dict[int, pd.DataFrame]:
         return {
@@ -98,13 +96,13 @@ class SequencePreprocessor:
         contextual = features_df[['under_pressure', 'counterpress', 'opposite_action']].astype(float).values
 
         # 5. Categorical features (one-hot encoding)
-        def one_hot_numpy(ids, K, dtype=np.uint8):
-            a = np.asarray(ids)
+        def one_hot_numpy(category_ids, num_categories, dtype=np.uint8):
+            a = np.asarray(category_ids)
 
             valid = (~np.isnan(a)) if a.dtype.kind == "f" else (a >= 0)
             idx = np.where(valid, a, -1).astype(np.int64)
 
-            out = np.zeros((len(a), K), dtype=dtype)
+            out = np.zeros((len(a), num_categories), dtype=dtype)
             rows = np.nonzero(valid)[0]
             out[rows, idx[rows]] = 1
             return out
