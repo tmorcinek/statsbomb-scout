@@ -56,9 +56,11 @@ class SequencePreprocessor:
 
         Features (total 46):
         - Spatial (4): start_x, start_y, end_x, end_y normalized to [0,1]
-        - Geometric (3): distance, sin(angle), cos(angle)
-        - Temporal (1): time_diff capped at 10s
-        - Contextual (3): under_pressure, counterpress, opposite_action
+          by dividing by field_length / field_width respectively
+        - Geometric (3): distance normalized to [0,1] by field_length,
+          sin(angle), cos(angle)
+        - Temporal (1): time_diff normalized to [0,1] by dividing by 10s and capping at 1.0
+        - Contextual (3): under_pressure, counterpress, opposite_action (boolean cast to float)
         - Categorical (35): one-hot encoded
           - type_id (23): action type
           - result_id (6): result type
