@@ -190,6 +190,6 @@ def test_plot_possessions_with_ids(final_game):
 
     assert len(possessions) == 12
 
-    fig = plot_multiple_possessions(possessions.values(), main_title=f"{game_summary(game)}\nPossessions from highlightes")
+    fig = plot_multiple_possessions(possessions.values(), main_title=f"{game_summary(game)}\nPossessions from highlightes", cols=5)
     fig.savefig('data/test/visualization_highlights.png', dpi=300, bbox_inches='tight')
     plt.show()

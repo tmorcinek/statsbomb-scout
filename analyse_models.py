@@ -79,7 +79,7 @@ class PreprocessMatchStep(PipelineStep):
 
 class AnalyzeModelStep(PipelineStep):
 
-    def __init__(self, model_config: ModelConfig, top_n: int = 50, top_k: int = 8, cols: int = 4):
+    def __init__(self, model_config: ModelConfig, top_n: int = 50, top_k: int = 10, cols: int = 3):
         super().__init__()
         self.model_config = model_config
         self.top_n = top_n
@@ -163,8 +163,8 @@ def create_analysis_pipeline(
         match_id: int,
         model_configs: List[ModelConfig],
         top_n: int = 50,
-        top_k: int = 8,
-        cols: int = 4,
+        top_k: int = 10,
+        cols: int = 3,
         mode: PreprocessingMode = PreprocessingMode.TRAINING,
         data_dir: str = "data/statsbomb/data",
         competition_id: int = 55,
@@ -200,8 +200,8 @@ if __name__ == "__main__":
         match_id=3943043,
         model_configs=models,
         top_n=None,
-        top_k=20,
-        cols=4,
+        top_k=10,
+        cols=3,
         mode=PreprocessingMode.VALIDATION,
     )
 

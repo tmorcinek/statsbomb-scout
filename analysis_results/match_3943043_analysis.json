@@ -8,7 +8,7 @@
     "sum_predicted_values": 8.10757827758789,
     "has_attention_weights": true,
     "top_n": null,
-    "top_k": 20,
+    "top_k": 10,
     "csv_path": "generated/attention_lstm_attention_lstm_large_20260214_170158/top_possessions_match_3943043.csv",
     "image_path": "generated/attention_lstm_attention_lstm_large_20260214_170158/top_possessions_match_3943043.png",
     "status": "success"
@@ -22,7 +22,7 @@
     "sum_predicted_values": 8.482438087463379,
     "has_attention_weights": true,
     "top_n": null,
-    "top_k": 20,
+    "top_k": 10,
     "csv_path": "generated/transformer_transformer_baseline_20260214_170158/top_possessions_match_3943043.csv",
     "image_path": "generated/transformer_transformer_baseline_20260214_170158/top_possessions_match_3943043.png",
     "status": "success"
